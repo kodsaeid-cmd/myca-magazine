@@ -10,7 +10,7 @@ export const categories = [
 
 // Photos are mirrored at build time from verified Pexels sources and then
 // served from our own Cloudflare site, not loaded by the browser from a third party.
-const photo = (filename) => '/images/' + filename;
+const photo = (filename) => '/images/' + filename + '?v=3';
 export const articles = [
   {
     slug: 'elderly-care-at-home',
