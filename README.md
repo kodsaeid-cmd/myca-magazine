@@ -65,3 +65,16 @@ Directus یا CMS headless، مدل نویسنده و بازبین تخصصی، 
 اسکریپت `npm run deploy` در `package.json` ابتدا `npm run build` و سپس `wrangler deploy` را اجرا می‌کند؛ هر دو روش را هم‌زمان تنظیم نکنید تا ساخت تکراری نشود. بعد از ذخیره تنظیمات از Deployment → Build History گزینه Retry build را بزنید.
 
 توجه: برای استقرار Worker، نام Worker باید با `name` در `wrangler.jsonc` هماهنگ باشد (`myca-magazine-stage`). در این مرحله دامنه اصلی و Worker موجود سایت اعتماد و آسایش را تغییر ندهید.
+
+
+## عکس‌های واقعی برای نسخه آزمایشی
+تصاویر مرتبط با سالمند، مراقب و کودک از منابع **Unsplash License** انتخاب شده‌اند. برای انتشار عمومی بهتر است ترکیب تصویری با عکس‌های اختصاصی و مجاز مایکا تکمیل شود.
+
+- [Age Cymru — پرستار و سالمند](https://unsplash.com/photos/nurse-smiling-with-elderly-patient-in-room-dMhB7w99ju8)
+- [Age Cymru — همراهی سالمند با واکر](https://unsplash.com/photos/caregiver-assists-elderly-woman-with-walker-2obyM4zYt3Y)
+- [Vitaly Gariev — بازی مادر و کودک](https://unsplash.com/photos/mother-and-son-building-with-colorful-blocks-aeurI5QKKOU)
+- [Age Cymru — فعالیت سالمندان و مراقب](https://unsplash.com/photos/caregiver-assisting-elderly-couple-with-coloring-bSXk1lOp8T0)
+- [Age Cymru — فعالیت اجتماعی سالمند](https://unsplash.com/photos/elderly-woman-dances-with-caregiver-in-a-community-room-ax8tB0iOk_g)
+- [Vitaly Gariev — بازی مادر و دختر](https://unsplash.com/photos/mother-and-daughter-having-a-pillow-fight-on-bed-dIK1Gh91rzc)
+
+صفحه نخست از مجموعه آخرین رکوردهای نمونه در `src/lib/content.js` استفاده می‌کند. انیمیشن و انتخاب دستی خبرها کار می‌کند، اما «خبر زنده» یا اتصال به CMS هنوز وجود ندارد؛ با اتصال پنل تحریریه، داده‌های `HeroNewsDesk` از پست‌های منتشرشده جدید تغذیه می‌شود.
