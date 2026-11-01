@@ -147,14 +147,3 @@ const testPage = '<!doctype html><html lang="fa" dir="rtl"><meta charset="utf-8"
 await writeFile(join(destination, 'pack-test.html'), testPage, 'utf8');
 console.log('MYCA rescue bundle: ' + Math.round(rawBytes / 1024) +
   'KB source pixels, ' + Math.round(Buffer.byteLength(bundle) / 1024) + 'KB JavaScript for eight distinct photos.');
-
-
-// Controlled size-vs-path tests for the affected network. These aliases are
-// exact byte-for-byte copies; comparison distinguishes filename from file size.
-const controlSmall = await readFile(join(destination, 'sample.jpg'));
-const controlLarge = await readFile(join(destination, 'photo-care-main.jpg'));
-await Promise.all([
-  writeFile(join(destination, 'probe-small-alias.jpg'), controlSmall),
-  writeFile(join(destination, 'probe-large-alias.jpg'), controlLarge)
-]);
-console.log('MYCA diagnostic controls: small=' + controlSmall.length + ', large=' + controlLarge.length + ' bytes');

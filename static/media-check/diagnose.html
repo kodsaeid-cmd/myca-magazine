@@ -43,10 +43,7 @@ var labels={
 'photos':'عکس‌های قابل مشاهده',
 'rescue':'فایل جایگزین JavaScript',
 'sample-jpg':'فایل عکس تأییدشده در آزمایش قبلی',
-'care-jpg':'فایل عکس بزرگ (۹۸ کیلوبایت)',
-'care-sm':'فایل عکس کوچک مایکا (۱۷ کیلوبایت)',
-'alias-sm':'عکس موفق قبلی با نام جدید',
-'alias-lg':'عکس بزرگ با نام آزمایشی',
+'care-jpg':'فایل عکس جدید مراقبت سالمند',
 'pack-js':'دسترسی فایل جایگزین تصاویر'
 };
 function measure(img){if(!img)return 'no element';var src=img.getAttribute('src')||'';return (img.complete&&img.naturalWidth>0?'loaded '+img.naturalWidth+'px':img.complete?'broken':'pending')+' | '+(src.startsWith('data:')?'inline image':src.slice(0,108));}
@@ -78,7 +75,7 @@ add('frame',d?'HTML باز شده':'هنوز باز نشده',d?true:null);
 add('hero',report.hero||'منتظر',report.hero?.startsWith('loaded')?true:report.hero?.startsWith('broken')?false:null);
 add('photos',d?report.loaded+' از '+report.photoCount+' عکس بارگذاری شد':'منتظر',d&&report.photoCount?(report.loaded===report.photoCount?true:false):null);
 add('rescue',d?(report.scriptReady?'فعال':'فعال نشده'):'نامشخص',report.scriptReady?true:null);
-for(var key of ['sample-jpg','care-sm','alias-sm','alias-lg','care-jpg','pack-js'])add(key,checks[key]||'در حال بررسی',checks[key]?.startsWith('OK')?true:checks[key]?.startsWith('خطا')?false:null);
+for(var key of ['sample-jpg','care-jpg','pack-js'])add(key,checks[key]||'در حال بررسی',checks[key]?.startsWith('OK')?true:checks[key]?.startsWith('خطا')?false:null);
 detail.textContent=JSON.stringify(report,null,2);
 }
 async function fetchTest(key,url){
@@ -91,12 +88,9 @@ try{
 clearTimeout(tm);inspect();
 }
 function run(){
-started=Date.now();checks={};frame.src='/';
+started=Date.now();checks={};frame.src='/?media-diagnostic='+Date.now();
 fetchTest('sample-jpg','/media-check/sample.jpg?probe='+Date.now());
-fetchTest('care-jpg','/media-check/photo-care-main.jpg?probe='+Date.now());
-fetchTest('care-sm','/media-check/photo-care-main-sm.jpg?probe='+Date.now());
-fetchTest('alias-sm','/media-check/probe-small-alias.jpg?probe='+Date.now());
-fetchTest('alias-lg','/media-check/probe-large-alias.jpg?probe='+Date.now());
+fetchTest('care-jpg','/media-check/photo-care-main.jpg?v=7&probe='+Date.now());
 fetchTest('pack-js','/media-check/sample-pack.js?v=9&probe='+Date.now());
 inspect();
 }
