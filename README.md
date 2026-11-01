@@ -44,3 +44,24 @@ Directus یا CMS headless، مدل نویسنده و بازبین تخصصی، 
 - هرگز Worker فعلی `etemaad-asayesh-stage` یا DNS رکورد `stage.dandoonii.ir` را جایگزین نکنید.
 
 مقالات آزمایشی‌اند؛ `robots.txt` و هدر `X-Robots-Tag` ایندکس را ممنوع می‌کنند. برای محدودکردن دسترسی واقعی، Cloudflare Access لازم است.
+
+
+### رفع خطای Cloudflare: assets.directory does not exist
+
+اگر در Workers Builds فقط `npx wrangler deploy` اجرا شود، پوشه `build/` وجود ندارد، چون این پوشه توسط `vite build` ساخته می‌شود و در Git ثبت نمی‌شود.
+
+در Cloudflare → Workers & Pages → `myca-magazine-stage` → Settings → Build → Build Configuration، یکی از این دو حالت را انتخاب کنید:
+
+**حالت پیشنهادی استاندارد**
+- Build command: `npm run build`
+- Deploy command: `npx wrangler deploy`
+- Root directory: ریشه مخزن (`/` یا خالی)
+- Branch: `main`
+
+**حالت تک‌دستوری (اگر Build command را خالی گذاشته‌اید)**
+- Build command: خالی
+- Deploy command: `npm run deploy`
+
+اسکریپت `npm run deploy` در `package.json` ابتدا `npm run build` و سپس `wrangler deploy` را اجرا می‌کند؛ هر دو روش را هم‌زمان تنظیم نکنید تا ساخت تکراری نشود. بعد از ذخیره تنظیمات از Deployment → Build History گزینه Retry build را بزنید.
+
+توجه: برای استقرار Worker، نام Worker باید با `name` در `wrangler.jsonc` هماهنگ باشد (`myca-magazine-stage`). در این مرحله دامنه اصلی و Worker موجود سایت اعتماد و آسایش را تغییر ندهید.
