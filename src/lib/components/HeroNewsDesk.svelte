@@ -91,13 +91,22 @@
         <h2>تازه‌ترین مطالب</h2>
       </div>
       <button class="news-play-toggle" onclick={togglePlayback} aria-label={playIsPaused ? 'پخش خودکار مطالب' : 'توقف پخش خودکار مطالب'} title={playIsPaused ? 'پخش خودکار' : 'توقف پخش خودکار'}>
-        {#if playIsPaused}<Play size={16} fill="currentColor"/>{:else}<Pause size={16} fill="currentColor"/>{/if}
+        <Play class="news-icon-play" size={16} fill="currentColor"/>
+        <Pause class="news-icon-pause" size={16} fill="currentColor"/>
       </button>
     </header>
     <div class="news-desk-items" aria-label="انتخاب مطلب برجسته">
       {#each items as item, index (item.slug)}
         <button
           type="button"
+          data-image-full={imageFor(item.image, 1440, 82)}
+          data-image-mobile={imageFor(item.image, 900, 82)}
+          data-image-alt={item.imageAlt}
+          data-category={categoryName(item.category)}
+          data-title={item.title}
+          data-excerpt={item.excerpt}
+          data-url={'/article/' + item.slug}
+          data-minutes={item.minutes}
           class:news-item-active={active === index}
           class="news-item"
           aria-pressed={active === index}
