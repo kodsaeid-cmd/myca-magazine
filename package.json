@@ -9,8 +9,8 @@
     "preview": "vite preview",
     "check": "svelte-kit sync && svelte-check --tsconfig ./jsconfig.json",
     "deploy": "npm run build && wrangler deploy",
-    "prebuild": "node scripts/prepare-media-check.mjs",
-    "predev": "node scripts/prepare-media-check.mjs"
+    "prebuild": "node scripts/prepare-media-check.mjs && node scripts/prepare-local-photos.mjs",
+    "predev": "node scripts/prepare-media-check.mjs && node scripts/prepare-local-photos.mjs"
   },
   "dependencies": {
     "@lucide/svelte": "^1.61.0",

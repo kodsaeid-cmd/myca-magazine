@@ -1,14 +1,7 @@
-// Use Unsplash Image CDN's built-in size negotiation so a thumbnail never downloads a 2K hero.
-export function imageFor(source, width = 1200, quality = 86) {
-  try {
-    const url = new URL(source);
-    if (url.hostname !== 'images.unsplash.com') return source;
-    url.searchParams.set('auto', 'format');
-    url.searchParams.set('fit', 'crop');
-    url.searchParams.set('w', String(width));
-    url.searchParams.set('q', String(quality));
-    return url.toString();
-  } catch {
-    return source;
-  }
+// Media transport confirmed directly on /media-check/sample.jpg without VPN.
+// Use the same first-party directory for every photo; no browser CDN calls.
+export function imageFor(source, width = 1200, _quality = 86) {
+  if (typeof source !== 'string' || !source.startsWith('/media-check/photo-')) return source;
+  if (width > 450) return source;
+  return source.replace(/\.jpg(?=\?|$)/i, '-sm.jpg');
 }
