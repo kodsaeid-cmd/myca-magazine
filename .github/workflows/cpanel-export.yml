@@ -1,0 +1,69 @@
+name: Package MYCA magazine for cPanel
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/cpanel-export.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  package:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install dependencies
+        run: npm install --no-audit --no-fund
+      - name: Validate SvelteKit
+        run: npm run check
+      - name: Build all prerendered pages and local photography
+        run: npm run build
+      - name: Prepare Apache friendly URLs and self-contained ZIP
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -s build/index.html
+          test -d build/_app
+          test -s build/media-check/photo-care-main.jpg
+          test -s build/myca-logo.svg
+          cat > build/.htaccess <<'HTACCESS'
+          DirectoryIndex index.html
+          RewriteEngine On
+          RewriteCond %{REQUEST_FILENAME} !-f
+          RewriteCond %{REQUEST_FILENAME} !-d
+          RewriteCond %{REQUEST_FILENAME}.html -f
+          RewriteRule ^(.+?)/?$ $1.html [L]
+          ErrorDocument 404 /404.html
+          HTACCESS
+          (
+            cd build
+            zip -qr ../myca-magazine-cpanel.zip .
+          )
+          unzip -l myca-magazine-cpanel.zip | grep -E '(^| )index.html$'
+          unzip -l myca-magazine-cpanel.zip | grep -E '\.htaccess$'
+          echo "Ready ZIP: $(du -h myca-magazine-cpanel.zip | cut -f1)"
+      - name: Upload portable cPanel ZIP
+        uses: actions/upload-artifact@v4
+        with:
+          name: myca-magazine-cpanel
+          path: myca-magazine-cpanel.zip
+          if-no-files-found: error
+          retention-days: 30
+      - name: Publish portable ZIP for easy direct download
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          TAG="cpanel-$(git rev-parse --short HEAD)"
+          gh release create "$TAG" myca-magazine-cpanel.zip \
+            --title "MYCA Magazine - cPanel Migration Package" \
+            --notes "Prebuilt static magazine ZIP. Extract its CONTENTS directly inside the cPanel document root. Includes all pages, local JPEGs, CSS, JS, fonts and Apache .htaccess. Do not change DNS until tested." \
+            --latest=false
+          echo "Direct download: https://github.com/${GITHUB_REPOSITORY}/releases/download/${TAG}/myca-magazine-cpanel.zip"
