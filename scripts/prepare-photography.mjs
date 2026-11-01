@@ -52,8 +52,8 @@ async function fetchOriginal(id) {
 }
 
 async function optimize(input, { thumbnail = false, quality = 76 } = {}) {
-  const maxWidth = thumbnail ? 390 : 1440;
-  const maxHeight = thumbnail ? 390 : 1600;
+  const maxWidth = thumbnail === 'small' ? 390 : thumbnail === 'medium' ? 900 : 1440;
+  const maxHeight = thumbnail === 'small' ? 390 : thumbnail === 'medium' ? 1100 : 1600;
   return sharp(input, { failOn: 'error' })
     .rotate()
     .resize({ width: maxWidth, height: maxHeight, fit: 'inside', withoutEnlargement: true })
@@ -63,8 +63,9 @@ async function optimize(input, { thumbnail = false, quality = 76 } = {}) {
 
 async function mirror(name, id) {
   const large = join(folder, name + '.jpg');
+  const medium = join(folder, name + '-md.jpg');
   const small = join(folder, name + '-sm.jpg');
-  if (await fileReady(large) && await fileReady(small)) {
+  if (await fileReady(large) && await fileReady(medium) && await fileReady(small)) {
     console.log('Cached photo variants:', name);
     return;
   }
@@ -78,15 +79,18 @@ async function mirror(name, id) {
   if (largeBuffer.length > 390000) {
     throw new Error(`Oversized photo ${name}: ${largeBuffer.length} bytes`);
   }
-  let thumbnail = await optimize(source, { thumbnail: true, quality: 69 });
+  let mediumBuffer = await optimize(source, { thumbnail: 'medium', quality: 72 });
+  if (mediumBuffer.length > 195000) mediumBuffer = await optimize(source, { thumbnail: 'medium', quality: 62 });
+  if (mediumBuffer.length > 195000) throw new Error('Oversized medium image ' + name);
+  let thumbnail = await optimize(source, { thumbnail: 'small', quality: 69 });
   if (thumbnail.length > 65000) {
-    thumbnail = await optimize(source, { thumbnail: true, quality: 58 });
+    thumbnail = await optimize(source, { thumbnail: 'small', quality: 58 });
   }
   if (thumbnail.length > 65000) {
     throw new Error(`Oversized thumbnail ${name}: ${thumbnail.length} bytes`);
   }
-  await Promise.all([writeFile(large, largeBuffer), writeFile(small, thumbnail)]);
-  console.log(`Optimized ${name}: main ${Math.round(largeBuffer.length / 1024)} KB, thumb ${Math.round(thumbnail.length / 1024)} KB`);
+  await Promise.all([writeFile(large, largeBuffer), writeFile(medium, mediumBuffer), writeFile(small, thumbnail)]);
+  console.log(`Optimized ${name}: main ${Math.round(largeBuffer.length / 1024)} KB, medium ${Math.round(mediumBuffer.length / 1024)} KB, thumb ${Math.round(thumbnail.length / 1024)} KB`);
 }
 
 for (let i = 0; i < photos.length; i += 3) {
