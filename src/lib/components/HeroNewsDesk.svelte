@@ -53,14 +53,18 @@
   <div class="news-stage">
     {#if current}
       {#key current.slug}
-        <img
-          class="news-stage-photo"
-          src={imageFor(current.image, 1900, 90)}
-          alt={current.imageAlt}
-          fetchpriority={active === 0 ? 'high' : 'auto'}
-          decoding="async"
-          in:fade={{ duration: 430 }}
-        />
+        <picture>
+          <source media="(max-width: 650px)" srcset={imageFor(current.image, 900, 82)} type="image/webp" />
+          <img
+            class="news-stage-photo"
+            src={imageFor(current.image, 1440, 82)}
+            alt={current.imageAlt}
+            loading="eager"
+            fetchpriority={active === 0 ? 'high' : 'auto'}
+            decoding="async"
+            in:fade={{ duration: 430 }}
+          />
+        </picture>
         <div class="news-stage-shade"></div>
         <div class="news-stage-copy" in:fly={{ y: 16, duration: 370, delay: 75 }}>
           <span class="news-category">{categoryName(current.category)}</span>
@@ -102,7 +106,7 @@
           onfocus={() => show(index, false)}
         >
           <span class="news-item-picture">
-            <img src={imageFor(item.image, 320, 85)} alt="" loading={index === 0 ? 'eager' : 'lazy'} decoding="async"/>
+            <img src={imageFor(item.image, 320, 85)} alt="" fetchpriority="low" loading={index === 0 ? 'eager' : 'lazy'} decoding="async"/>
           </span>
           <span class="news-item-text">
             <small>{categoryName(item.category)}</small>
