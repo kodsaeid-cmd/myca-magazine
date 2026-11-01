@@ -1,7 +1,7 @@
 <script>
   import { page } from '$app/stores';
   import { env } from '$env/dynamic/public';
-  import { ArrowLeft, ArrowUpLeft, Clock3, CalendarDays, ChevronLeft, BookOpen, ShieldCheck } from 'lucide-svelte';
+  import { ArrowLeft, ArrowUpLeft, Clock3, CalendarDays, ChevronLeft, BookOpen, ShieldCheck } from '@lucide/svelte';
   import { categoryName } from '$lib/content.js';
   export let data;
   const appUrl = env.PUBLIC_APP_URL || 'https://mycaapp.com';
