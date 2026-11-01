@@ -6,7 +6,6 @@ export default {
   preprocess: vitePreprocess(),
   kit: {
     adapter: adapter({ pages: 'build', assets: 'build', strict: true }),
-    trailingSlash: 'always',
     prerender: {
       origin: 'https://mycablog.dandoonii.ir',
       entries: [
