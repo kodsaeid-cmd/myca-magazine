@@ -1,6 +1,6 @@
 // MYCA Magazine — compress and self-host all editorial photos during build.
 // No browser request depends on Pexels or Unsplash. Assets are intentionally
-// bounded in dimensions and bytes for mobile users and constrained networks.
+// bounded in dimensions and bytes for mobile users and constrained networks. All output images use WebP.
 import { mkdir, writeFile, stat } from 'node:fs/promises';
 import { join } from 'node:path';
 import sharp from 'sharp';
@@ -57,36 +57,36 @@ async function optimize(input, { thumbnail = false, quality = 76 } = {}) {
   return sharp(input, { failOn: 'error' })
     .rotate()
     .resize({ width: maxWidth, height: maxHeight, fit: 'inside', withoutEnlargement: true })
-    .jpeg({ quality, mozjpeg: true, progressive: true })
+    .webp({ quality, effort: 4 })
     .toBuffer();
 }
 
 async function mirror(name, id) {
-  const large = join(folder, name + '.jpg');
-  const medium = join(folder, name + '-md.jpg');
-  const small = join(folder, name + '-sm.jpg');
+  const large = join(folder, name + '.webp');
+  const medium = join(folder, name + '-md.webp');
+  const small = join(folder, name + '-sm.webp');
   if (await fileReady(large) && await fileReady(medium) && await fileReady(small)) {
     console.log('Cached photo variants:', name);
     return;
   }
   const source = await fetchOriginal(id);
   let largeBuffer = await optimize(source);
-  // Keep every full image below 390 KB (well below the previous multi-megabyte images).
+  // Keep every full image below 260 KB (well below the previous multi-megabyte images).
   for (const quality of [71, 66, 60]) {
-    if (largeBuffer.length <= 390000) break;
+    if (largeBuffer.length <= 260000) break;
     largeBuffer = await optimize(source, { quality });
   }
-  if (largeBuffer.length > 390000) {
+  if (largeBuffer.length > 260000) {
     throw new Error(`Oversized photo ${name}: ${largeBuffer.length} bytes`);
   }
   let mediumBuffer = await optimize(source, { thumbnail: 'medium', quality: 72 });
-  if (mediumBuffer.length > 195000) mediumBuffer = await optimize(source, { thumbnail: 'medium', quality: 62 });
-  if (mediumBuffer.length > 195000) throw new Error('Oversized medium image ' + name);
+  if (mediumBuffer.length > 120000) mediumBuffer = await optimize(source, { thumbnail: 'medium', quality: 62 });
+  if (mediumBuffer.length > 120000) throw new Error('Oversized medium image ' + name);
   let thumbnail = await optimize(source, { thumbnail: 'small', quality: 69 });
-  if (thumbnail.length > 65000) {
-    thumbnail = await optimize(source, { thumbnail: 'small', quality: 58 });
+  if (thumbnail.length > 38000) {
+    thumbnail = await optimize(source, { thumbnail: 'small', quality: 52 });
   }
-  if (thumbnail.length > 65000) {
+  if (thumbnail.length > 38000) {
     throw new Error(`Oversized thumbnail ${name}: ${thumbnail.length} bytes`);
   }
   await Promise.all([writeFile(large, largeBuffer), writeFile(medium, mediumBuffer), writeFile(small, thumbnail)]);
