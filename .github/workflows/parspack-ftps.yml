@@ -3,6 +3,12 @@ name: MYCA Magazine | ParsPack FTPS
 # Safety: manual-only until the first dry run and actual release are verified.
 # FTP account is scoped to /home/mycabl/public_html.
 on:
+  # A workflow-file update runs a safe, read-only FTPS dry run.
+  # Publication is NEVER enabled on a push event.
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/parspack-ftps.yml'
   workflow_dispatch:
     inputs:
       publish:
@@ -82,7 +88,7 @@ jobs:
           # The cPanel FTP account's home is ALREADY public_html.
           # Adding another public_html/ would upload into the wrong folder.
           server-dir: ./
-          dry-run: ${{ !inputs.publish }}
+          dry-run: ${{ github.event_name != 'workflow_dispatch' || !inputs.publish }}
           dangerous-clean-slate: false
           timeout: 60000
           log-level: standard
@@ -96,7 +102,7 @@ jobs:
       - name: Result
         shell: bash
         run: |
-          if [ "${{ inputs.publish }}" = 'true' ]; then
+          if [ "${{ github.event_name }}" = 'workflow_dispatch' ] && [ "${{ inputs.publish }}" = 'true' ]; then
             echo 'FTPS published. Verify https://mycablog.dandoonii.ir/ and article/photo links.'
           else
             echo 'FTPS preview complete. Server files were NOT changed.'
