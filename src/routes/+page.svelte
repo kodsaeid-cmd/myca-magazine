@@ -5,7 +5,7 @@
     HeartHandshake, Baby, HeartPulse, Accessibility, GraduationCap, House,
     ArrowLeft, ArrowUpLeft, CalendarDays, Clock3, BookOpen, ShieldCheck,
     Sparkles, Headphones, PlayCircle, ChevronLeft, Heart, UsersRound
-  } from 'lucide-svelte';
+  } from '@lucide/svelte';
   import { categories, articles, categoryName } from '$lib/content.js';
 
   const appUrl = env.PUBLIC_APP_URL || 'https://mycaapp.com';
