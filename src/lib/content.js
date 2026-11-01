@@ -8,17 +8,18 @@ export const categories = [
   { slug: 'home-safety', label: 'خانه ایمن', short: 'خانه ایمن', icon: 'house', description: 'ایمن‌سازی محیط منزل برای همه سنین' }
 ];
 
-const photo = (id, width = 1100) =>
-  'https://images.unsplash.com/' + id + '?auto=format&fit=crop&w=' + width + '&q=82';
+const photo = (id, width = 1600) =>
+  'https://images.unsplash.com/' + id + '?auto=format&fit=crop&w=' + width + '&q=88';
 
+// Free Unsplash-licensed photos, with photographers recorded in README; larger sizes for retina displays.
 export const articles = [
   {
     slug: 'elderly-care-at-home',
     title: 'مراقبت بهتر، زندگی آرام‌تر؛ راهنمای خانواده‌ها',
     category: 'elder-care',
     excerpt: 'از شناخت نیازهای روزمره تا ساختن یک برنامه مراقبتی قابل اعتماد؛ راهنمایی برای خانواده‌هایی که آرامش عزیزانشان مهم است.',
-    image: photo('photo-1511895426328-dc8714191300', 1500),
-    imageAlt: 'خانواده در فضای صمیمی و روشن',
+    image: photo('photo-1765896387387-0538bc9f997e', 2000),
+    imageAlt: 'مراقب در کنار بانوی سالمند در محیط گرم و روشن',
     date: '۱۰ آبان ۱۴۰۵',
     minutes: 8,
     featured: true,
@@ -49,8 +50,8 @@ export const articles = [
     title: 'راهنمای انتخاب واکر مناسب برای سالمند',
     category: 'equipment',
     excerpt: 'هنگام انتخاب واکر چه نکاتی درباره قد، محیط منزل، پایداری و راحتی استفاده باید بررسی شود؟',
-    image: photo('photo-1576765607924-bab43bfa49ea'),
-    imageAlt: 'محیط مراقبت و سلامت',
+    image: photo('photo-1773227055624-07b515ba87c5'),
+    imageAlt: 'مراقب در حال کمک به بانوی سالمند کنار واکر',
     date: '۸ آبان ۱۴۰۵',
     minutes: 5,
     paragraphs: [
@@ -64,8 +65,8 @@ export const articles = [
     title: 'برنامه روزانه کودک؛ تعادل میان بازی و استراحت',
     category: 'child-family',
     excerpt: 'چطور یک روال قابل پیش‌بینی، انعطاف‌پذیر و متناسب با نیازهای خانواده داشته باشیم؟',
-    image: photo('photo-1492725764893-90b379c2b6e7'),
-    imageAlt: 'مادر و کودک در کنار هم',
+    image: photo('photo-1758598737547-666bce663667'),
+    imageAlt: 'مادر و کودک در حال بازی با مکعب‌های رنگی در خانه',
     date: '۷ آبان ۱۴۰۵',
     minutes: 7,
     paragraphs: [
@@ -94,8 +95,8 @@ export const articles = [
     title: 'گفت‌وگوی مؤثر با سالمند؛ مهارت‌های ساده مراقبین',
     category: 'caregiver-skills',
     excerpt: 'احترام، گوش‌دادن فعال و حفظ اختیار فرد، پایه‌های یک رابطه مراقبتی سالم هستند.',
-    image: photo('photo-1584515933487-779824d29309'),
-    imageAlt: 'ارتباط مراقبتی و توجه به فرد',
+    image: photo('photo-1762955911431-4c44c7c3f408'),
+    imageAlt: 'مراقب در کنار زوج سالمند هنگام فعالیت هنری',
     date: '۵ آبان ۱۴۰۵',
     minutes: 5,
     paragraphs: [
@@ -109,8 +110,8 @@ export const articles = [
     title: 'زندگی فعال در سالمندی؛ قدم‌های کوچک روزانه',
     category: 'elder-care',
     excerpt: 'چطور ارتباط اجتماعی، سرگرمی و فعالیت متناسب با توان فرد را در روزمرگی حفظ کنیم؟',
-    image: photo('photo-1473496169904-658ba7c44d8a'),
-    imageAlt: 'طبیعت و پیاده‌روی در فضای باز',
+    image: photo('photo-1773227060422-ee506b865417'),
+    imageAlt: 'بانوی سالمند در فعالیت گروهی همراه مراقب',
     date: '۴ آبان ۱۴۰۵',
     minutes: 7,
     paragraphs: [
@@ -124,8 +125,8 @@ export const articles = [
     title: 'چک‌لیست خانه ایمن برای کودک کنجکاو',
     category: 'child-family',
     excerpt: 'چند نکته ساده برای بررسی محیط بازی، نگهداری وسایل و کاهش خطرات قابل پیشگیری.',
-    image: photo('photo-1515488042361-ee00e0ddd4e4'),
-    imageAlt: 'کودک خردسال در محیط خانگی',
+    image: photo('photo-1758874961117-e40e35b67331'),
+    imageAlt: 'مادر و دختر در حال بازی در اتاق روشن',
     date: '۳ آبان ۱۴۰۵',
     minutes: 5,
     paragraphs: [
@@ -139,7 +140,7 @@ export const articles = [
     title: 'چطور برای مراقبت از یکی از اعضای خانواده برنامه‌ریزی کنیم؟',
     category: 'elder-care',
     excerpt: 'تقسیم مسئولیت‌ها، ثبت نیازها و داشتن مسیر مشخص برای درخواست کمک.',
-    image: photo('photo-1529156069898-49953e39b3ac'),
+    image: photo('photo-1762955911431-4c44c7c3f408'),
     imageAlt: 'جمعی از اعضای خانواده در کنار هم',
     date: '۲ آبان ۱۴۰۵',
     minutes: 6,
