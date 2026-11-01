@@ -52,14 +52,12 @@
         </button>
       </div>
     </div>
-    {#if mobileOpen}
-      <nav class="mobile-menu container" aria-label="فهرست موبایل">
-        {#each links as link}
-          <a href={link.href} onclick={() => (mobileOpen = false)}>{link.label}</a>
-        {/each}
-        <a href={appUrl} target="_blank" rel="noopener noreferrer">ورود به اپلیکیشن مایکا</a>
-      </nav>
-    {/if}
+    <nav class="mobile-menu container" aria-label="فهرست موبایل" hidden={!mobileOpen}>
+      {#each links as link}
+        <a href={link.href} onclick={() => (mobileOpen = false)}>{link.label}</a>
+      {/each}
+      <a href={appUrl} target="_blank" rel="noopener noreferrer">ورود به اپلیکیشن مایکا</a>
+    </nav>
   </header>
   <main id="main-content">
     <slot />
