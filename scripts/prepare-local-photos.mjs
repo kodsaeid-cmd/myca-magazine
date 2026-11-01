@@ -82,3 +82,68 @@ const gallery = '<!doctype html><html lang="fa" dir="rtl"><meta charset="utf-8">
   '<main><h1>تصاویر واقعی مجله مایکا از همان دامنه</h1><p>این عکس‌ها از فایل مستقل روی دامنه فعلی ارائه می‌شوند.</p><section>' + cards + '</section></main></html>';
 await writeFile(join(destination, 'gallery.html'), gallery, 'utf8');
 console.log('MYCA: first-party gallery and all ' + photos.length + ' article images ready.');
+
+
+// Fallback photo delivery through JavaScript. The user confirmed that the
+// /media-check/sample.js transport works without VPN. This bundle is only
+// downloaded if regular local JPEGs are slow or fail to load.
+import { readFile } from 'node:fs/promises';
+const fallback = {};
+let rawBytes = 0;
+for (const [name] of photos) {
+  const jpg = await readFile(join(destination, 'photo-' + name + '-sm.jpg'));
+  if (jpg.length < 5000 || jpg.length > 65000) throw new Error('Invalid rescue photo: ' + name);
+  rawBytes += jpg.length;
+  fallback[name] = 'data:image/jpeg;base64,' + jpg.toString('base64');
+}
+if (rawBytes > 270000) throw new Error('Image rescue budget exceeded: ' + rawBytes);
+
+function photoRescue(photoData) {
+  function getPhotoId(img) {
+    const manual = img.getAttribute('data-myca-photo');
+    if (manual && Object.prototype.hasOwnProperty.call(photoData, manual)) return manual;
+    const value = img.getAttribute('src') || '';
+    const match = value.match(/\/media-check\/photo-([a-z-]+?)(?:-sm)?\.jpg(?:\?|$)/);
+    return match && Object.prototype.hasOwnProperty.call(photoData, match[1]) ? match[1] : null;
+  }
+  function rescue() {
+    for (const img of document.querySelectorAll('img')) {
+      const id = getPhotoId(img);
+      if (!id || (img.complete && img.naturalWidth > 0)) continue;
+      if ((img.getAttribute('src') || '').startsWith('data:')) continue;
+      img.src = photoData[id];
+      img.dataset.mycaImageRescued = id;
+    }
+  }
+  let queued = false;
+  const observer = new MutationObserver(() => {
+    if (queued) return;
+    queued = true;
+    queueMicrotask(() => { queued = false; rescue(); });
+  });
+  function start() {
+    window.__mycaPhotoRescueReady = true;
+    rescue();
+    observer.observe(document.documentElement, {
+      subtree: true, childList: true, attributes: true, attributeFilter: ['src']
+    });
+  }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', start, { once: true });
+  else start();
+}
+const bundle = '(' + photoRescue.toString() + ')(' + JSON.stringify(fallback) + ');\n';
+await writeFile(join(destination, 'sample-pack.js'), bundle, 'utf8');
+const testCards = photos.map(([name]) =>
+  '<article><h2>' + name + '</h2><img src="/media-check/not-found.jpg" data-myca-photo="' + name + '" alt="' + name + '">' +
+  '<small>Only JavaScript image data can repair these intentionally broken URLs</small></article>'
+).join('');
+const testPage = '<!doctype html><html lang="fa" dir="rtl"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">' +
+  '<title>آزمون تصاویر متفاوت مایکا</title><style>body{background:#eef8fb;color:#093e60;font:16px Tahoma,Arial;padding:20px}' +
+  'main{max-width:1050px;margin:auto}section{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:12px}' +
+  'article{background:white;border-radius:14px;padding:12px}img{width:100%;height:190px;object-fit:cover;border-radius:9px}small{display:block}</style>' +
+  '<script defer src="/media-check/sample-pack.js?v=9"></script><main><h1>آزمون تصاویر متفاوت بدون VPN</h1>' +
+  '<p>این تصاویر عمداً URL ناموجود دارند و فقط توسط فایل JavaScript همان دامنه نمایش داده می‌شوند.</p>' +
+  '<section>' + testCards + '</section></main></html>';
+await writeFile(join(destination, 'pack-test.html'), testPage, 'utf8');
+console.log('MYCA rescue bundle: ' + Math.round(rawBytes / 1024) +
+  'KB source pixels, ' + Math.round(Buffer.byteLength(bundle) / 1024) + 'KB JavaScript for eight distinct photos.');
