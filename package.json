@@ -9,7 +9,8 @@
     "preview": "vite preview",
     "check": "svelte-kit sync && svelte-check --tsconfig ./jsconfig.json",
     "deploy": "npm run build && wrangler deploy",
-    "prebuild": "node scripts/prepare-photography.mjs"
+    "prebuild": "node scripts/prepare-photography.mjs",
+    "predev": "node scripts/prepare-photography.mjs"
   },
   "dependencies": {
     "@lucide/svelte": "^1.61.0",
