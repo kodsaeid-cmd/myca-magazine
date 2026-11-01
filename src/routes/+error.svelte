@@ -1,6 +1,6 @@
 <script>
   import { page } from '$app/stores';
-  import { ArrowLeft, House } from 'lucide-svelte';
+  import { ArrowLeft, House } from '@lucide/svelte';
 </script>
 <svelte:head><title>صفحه پیدا نشد | مجله مایکا</title><meta name="robots" content="noindex"/></svelte:head>
 <div class="container page-wrap">
