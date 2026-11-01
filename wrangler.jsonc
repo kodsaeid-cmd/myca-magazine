@@ -4,5 +4,11 @@
   "compatibility_date": "2026-11-01",
   "assets": {
     "directory": "./build"
-  }
+  },
+  "routes": [
+    {
+      "pattern": "mycablog.dandoonii.ir",
+      "custom_domain": true
+    }
+  ]
 }
