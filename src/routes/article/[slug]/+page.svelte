@@ -1,7 +1,7 @@
 <script>
   import { page } from '$app/stores';
   import { env } from '$env/dynamic/public';
-  import { ArrowLeft, ArrowUpLeft, Clock3, CalendarDays, ChevronLeft, BookOpen, ShieldCheck } from '@lucide/svelte';
+  import { Clock3, CalendarDays, BookOpen, ShieldCheck } from '@lucide/svelte';
   import { categoryName } from '$lib/content.js';
   export let data;
   const appUrl = env.PUBLIC_APP_URL || 'https://mycaapp.com';
@@ -32,13 +32,13 @@
 
 <div class="container page-wrap">
   <nav class="breadcrumb" aria-label="مسیر صفحه">
-    <a href="/">مجله مایکا</a><ChevronLeft size={14}/>
-    <a href={'/category/' + a.category}>{categoryName(a.category)}</a><ChevronLeft size={14}/>
+    <a href="/">مجله مایکا</a><span class="breadcrumb-separator" aria-hidden="true">/</span>
+    <a href={'/category/' + a.category}>{categoryName(a.category)}</a><span class="breadcrumb-separator" aria-hidden="true">/</span>
     <span>{a.title}</span>
   </nav>
   <div class="article-shell">
     <article class="article-body">
-      <span class="eyebrow">{categoryName(a.category)} / MYCA MAGAZINE</span>
+      <span class="eyebrow">{categoryName(a.category)}</span>
       <h1>{a.title}</h1>
       <p class="article-lead">{a.excerpt}</p>
       <div class="story-meta"><span><Clock3 size={14}/>{a.minutes} دقیقه مطالعه</span><span><CalendarDays size={14}/>{a.date}</span></div>
@@ -49,8 +49,8 @@
       {/each}
       <div class="article-note"><ShieldCheck size={19} style="display:inline;vertical-align:middle;margin-left:8px"/>این مطلب صرفاً اطلاعات عمومی و نمونه محتوای مجله است و جایگزین ارزیابی یا توصیه متخصص دارای صلاحیت نیست.</div>
       <div class="editorial-bottom" style="margin-top:26px">
-        <a href={'/category/' + a.category} class="text-link">مطالب بیشتر این موضوع <ArrowLeft size={16}/></a>
-        <a href={appUrl} class="btn-primary" target="_blank" rel="noopener noreferrer">خدمات مایکا <ArrowUpLeft size={16}/></a>
+        <a href={'/category/' + a.category} class="text-link">مطالب بیشتر این موضوع </a>
+        <a href={appUrl} class="btn-primary" target="_blank" rel="noopener noreferrer">خدمات مایکا </a>
       </div>
     </article>
     <aside class="panel article-related">
@@ -65,7 +65,7 @@
       {:else}
         <p class="article-lead" style="font-size:12px">به‌زودی مطالب بیشتری در این موضوع منتشر می‌شود.</p>
       {/if}
-      <div class="editorial-side-banner" style="margin-top:25px"><strong>به مراقب نیاز دارید؟</strong><p>برای مشاهده خدمات و ثبت درخواست به اپلیکیشن مایکا سر بزنید.</p><a class="text-link" href={appUrl} target="_blank" rel="noopener noreferrer">ورود به مایکا <ArrowUpLeft size={15}/></a></div>
+      <div class="editorial-side-banner" style="margin-top:25px"><strong>به مراقب نیاز دارید؟</strong><p>برای مشاهده خدمات و ثبت درخواست به اپلیکیشن مایکا سر بزنید.</p><a class="text-link" href={appUrl} target="_blank" rel="noopener noreferrer">ورود به مایکا </a></div>
     </aside>
   </div>
 </div>
