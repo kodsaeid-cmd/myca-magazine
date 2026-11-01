@@ -197,3 +197,12 @@
 .magazine-home > .mag-care-banner{content-visibility:auto;contain-intrinsic-size:auto 700px}
 .magazine-home > .mag-section:first-of-type{contain-intrinsic-size:auto 500px}
 @media(max-width:650px){.magazine-home > .mag-section{contain-intrinsic-size:auto 1100px}}
+
+.news-icon-play{display:none}
+.news-play-toggle.is-paused .news-icon-play{display:block}
+.news-play-toggle.is-paused .news-icon-pause{display:none}
+.news-switching .news-stage-copy{animation:myca-news-appear .34s ease-out both}
+.news-switching .news-stage-photo{animation:myca-news-photo .35s ease-out both}
+@keyframes myca-news-appear{from{opacity:.2;transform:translateY(13px)}to{opacity:1;transform:translateY(0)}}
+@keyframes myca-news-photo{from{opacity:.55;transform:scale(1.025)}to{opacity:1;transform:scale(1)}}
+@media(prefers-reduced-motion:reduce){.news-switching .news-stage-copy,.news-switching .news-stage-photo{animation:none!important}}
