@@ -1,66 +1,95 @@
-// Build-time image mirroring. Once deployed, browsers fetch photos from MYCA's own domain.
-// Photo originals are freely reusable under the Pexels License; sources in README.
-// This script runs in CI and Cloudflare Builds before Vite, never in the browser.
+// MYCA Magazine — compress and self-host all editorial photos during build.
+// No browser request depends on Pexels or Unsplash. Assets are intentionally
+// bounded in dimensions and bytes for mobile users and constrained networks.
 import { mkdir, writeFile, stat } from 'node:fs/promises';
 import { join } from 'node:path';
+import sharp from 'sharp';
 
-const assets = [
-  { file: 'care-main.jpg', id: 29372727 },
-  { file: 'home-safety.jpg', id: 29372532 },
-  { file: 'walker-care.jpg', id: 39005418 },
-  { file: 'child-play.jpg', id: 23224845 },
-  { file: 'senior-nutrition.jpg', id: 16782671 },
-  { file: 'caregiver-conversation.jpg', id: 18429310 },
-  { file: 'active-aging.jpg', id: 8899984 },
-  { file: 'child-home-safety.jpg', id: 10554830 },
-  { file: 'family-care.jpg', id: 7951621 }
+const photos = [
+  ['care-main', 29372727],
+  ['home-safety', 29372532],
+  ['walker-care', 39005418],
+  ['child-play', 23224845],
+  ['senior-nutrition', 16782671],
+  ['caregiver-conversation', 18429310],
+  ['active-aging', 8899984],
+  ['child-home-safety', 10554830],
+  ['family-care', 7951621]
 ];
 
-const dest = join(process.cwd(), 'static', 'images');
-await mkdir(dest, { recursive: true });
+const folder = join(process.cwd(), 'static', 'images');
+await mkdir(folder, { recursive: true });
 
-async function fetchImage({file, id}) {
-  const output = join(dest, file);
-  try {
-    const existing = await stat(output);
-    if (existing.size > 20000) {
-      console.log('Image cached:', file);
-      return;
-    }
-  } catch {
-    // Not present yet.
-  }
+async function fileReady(path) {
+  try { return (await stat(path)).size > 8000; }
+  catch { return false; }
+}
 
+async function fetchOriginal(id) {
   const url = `https://images.pexels.com/photos/${id}/pexels-photo-${id}.jpeg?auto=compress&cs=tinysrgb&w=1800`;
   let lastError;
-
   for (let attempt = 1; attempt <= 3; attempt++) {
     try {
       const response = await fetch(url, {
-        headers: { 'Accept': 'image/jpeg,image/*;q=0.9', 'User-Agent': 'MYCA-Magazine-Build/1.0' },
-        signal: AbortSignal.timeout(30000)
+        headers: { Accept: 'image/jpeg,image/*;q=0.9', 'User-Agent': 'MYCA-Magazine/1.1' },
+        signal: AbortSignal.timeout(22000)
       });
-      if (!response.ok) throw new Error(`HTTP ${response.status}`);
-      const type = response.headers.get('content-type') || '';
-      if (!type.startsWith('image/')) throw new Error(`Expected image, received ${type}`);
-      const data = Buffer.from(await response.arrayBuffer());
-      if (data.length < 20000 || data[0] !== 0xff || data[1] !== 0xd8) {
-        throw new Error('Downloaded file is not a valid full-size JPEG');
+      if (!response.ok) throw new Error('Image source returned HTTP ' + response.status);
+      if (!(response.headers.get('content-type') ?? '').startsWith('image/')) {
+        throw new Error('The source returned non-image data');
       }
-      await writeFile(output, data);
-      console.log(`Mirrored ${file}: ${(data.length / 1024).toFixed(0)} KB`);
-      return;
+      const buffer = Buffer.from(await response.arrayBuffer());
+      if (buffer.length < 12000) throw new Error('Image source returned an incomplete photo');
+      const meta = await sharp(buffer).metadata();
+      if (meta.width < 650 || meta.height < 400) throw new Error('Photo is smaller than expected');
+      return buffer;
     } catch (error) {
       lastError = error;
-      console.warn(`Image ${file} attempt ${attempt}/3: ${error.message}`);
-      if (attempt < 3) await new Promise(resolve => setTimeout(resolve, attempt * 1200));
+      if (attempt < 3) await new Promise(resolve => setTimeout(resolve, attempt * 700));
     }
   }
-  throw new Error(`Cannot build MYCA photo ${file}: ${lastError?.message}. Refusing to deploy blank imagery.`);
+  throw new Error(`Cannot download photo ${id}: ${lastError?.message}`);
 }
 
-// Small batches avoid provider throttling while keeping CI reasonably fast.
-for (let i = 0; i < assets.length; i += 3) {
-  await Promise.all(assets.slice(i, i + 3).map(fetchImage));
+async function optimize(input, { thumbnail = false, quality = 76 } = {}) {
+  const maxWidth = thumbnail ? 390 : 1440;
+  const maxHeight = thumbnail ? 390 : 1600;
+  return sharp(input, { failOn: 'error' })
+    .rotate()
+    .resize({ width: maxWidth, height: maxHeight, fit: 'inside', withoutEnlargement: true })
+    .jpeg({ quality, mozjpeg: true, progressive: true })
+    .toBuffer();
 }
-console.log('All MYCA photographic assets are ready for first-party hosting.');
+
+async function mirror(name, id) {
+  const large = join(folder, name + '.jpg');
+  const small = join(folder, name + '-sm.jpg');
+  if (await fileReady(large) && await fileReady(small)) {
+    console.log('Cached photo variants:', name);
+    return;
+  }
+  const source = await fetchOriginal(id);
+  let largeBuffer = await optimize(source);
+  // Keep every full image below 390 KB (well below the previous multi-megabyte images).
+  for (const quality of [71, 66, 60]) {
+    if (largeBuffer.length <= 390000) break;
+    largeBuffer = await optimize(source, { quality });
+  }
+  if (largeBuffer.length > 390000) {
+    throw new Error(`Oversized photo ${name}: ${largeBuffer.length} bytes`);
+  }
+  let thumbnail = await optimize(source, { thumbnail: true, quality: 69 });
+  if (thumbnail.length > 65000) {
+    thumbnail = await optimize(source, { thumbnail: true, quality: 58 });
+  }
+  if (thumbnail.length > 65000) {
+    throw new Error(`Oversized thumbnail ${name}: ${thumbnail.length} bytes`);
+  }
+  await Promise.all([writeFile(large, largeBuffer), writeFile(small, thumbnail)]);
+  console.log(`Optimized ${name}: main ${Math.round(largeBuffer.length / 1024)} KB, thumb ${Math.round(thumbnail.length / 1024)} KB`);
+}
+
+for (let i = 0; i < photos.length; i += 3) {
+  await Promise.all(photos.slice(i, i + 3).map(([name, id]) => mirror(name, id)));
+}
+console.log('MYCA: all photos optimized and stored locally for static hosting.');
