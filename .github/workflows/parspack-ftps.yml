@@ -78,7 +78,7 @@ jobs:
       - name: FTPS ${{ inputs.publish && 'publish' || 'dry-run only (no changes)' }}
         uses: SamKirkland/FTP-Deploy-Action@v4.4.0
         with:
-          server: ftp.mycablog.dandoonii.ir
+          server: mycablog.dandoonii.ir
           username: myca-deploy@mycablog.dandoonii.ir
           password: ${{ secrets.MYCA_FTPS_PASSWORD }}
           protocol: ftps
