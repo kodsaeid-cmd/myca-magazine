@@ -1,7 +1,7 @@
 <script>
   import { onMount } from 'svelte';
   import { fade, fly } from 'svelte/transition';
-  import { Clock3, Pause, Play, Sparkles } from '@lucide/svelte';
+  import { Clock3, Pause, Play } from '@lucide/svelte';
   import { categoryName } from '$lib/content.js';
   import { imageFor } from '$lib/images.js';
 
@@ -115,6 +115,5 @@
         </button>
       {/each}
     </div>
-    <p class="news-desk-help">برای نمایش هر مطلب، روی آن کلیک کنید.</p>
   </aside>
 </section>
