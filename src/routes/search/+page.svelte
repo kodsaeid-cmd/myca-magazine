@@ -1,6 +1,6 @@
 <script>
   import { page } from '$app/stores';
-  import { Search, Clock3, ArrowLeft, ChevronLeft } from 'lucide-svelte';
+  import { Search, Clock3, ArrowLeft, ChevronLeft } from '@lucide/svelte';
   import { categoryName } from '$lib/content.js';
   export let data;
 </script>
