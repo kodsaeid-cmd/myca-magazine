@@ -2,7 +2,7 @@
   import '../app.css';
   import { page } from '$app/stores';
   import { env } from '$env/dynamic/public';
-  import { Menu, X, Search, ArrowUpLeft, BookOpen, Instagram, Headphones, Sparkles } from '@lucide/svelte';
+  import { Menu, X, Search, BookOpen, Headphones, Sparkles } from '@lucide/svelte';
 
   const appUrl = env.PUBLIC_APP_URL || 'https://mycaapp.com';
   let mobileOpen = false;
@@ -32,7 +32,7 @@
         <a class="brand" href="/" aria-label="صفحه اصلی مجله مایکا" onclick={() => (mobileOpen = false)}>
           <img src="/myca-logo.svg" width="116" height="43" alt="MYCA" />
           <span class="brand-divider"></span>
-          <span class="brand-title">مجله <strong>مایکا</strong><small>MYCA MAGAZINE</small></span>
+          <span class="brand-title">مجله <strong>مایکا</strong></span>
         </a>
       </div>
       <nav class="desktop-nav" aria-label="ناوبری اصلی">
@@ -45,7 +45,7 @@
           <input name="q" type="search" aria-label="جست‌وجوی مقالات" placeholder="جست‌وجو در مجله..." />
           <button type="submit" aria-label="جست‌وجو"><Search size={19} /></button>
         </form>
-        <a class="header-cta" href={appUrl} target="_blank" rel="noopener noreferrer">درخواست خدمت <ArrowUpLeft size={17} /></a>
+        <a class="header-cta" href={appUrl} target="_blank" rel="noopener noreferrer">درخواست خدمت </a>
         <button class="icon-action mobile-search-toggle" aria-label="نمایش جست‌وجو" aria-expanded={searchOpen} onclick={() => (searchOpen = !searchOpen)}><Search size={21} /></button>
         <button class="icon-action mobile-menu-toggle" aria-label={mobileOpen ? 'بستن منو' : 'بازکردن منو'} aria-expanded={mobileOpen} onclick={() => (mobileOpen = !mobileOpen)}>
           {#if mobileOpen}<X size={24} />{:else}<Menu size={24} />{/if}
@@ -55,9 +55,9 @@
     {#if mobileOpen}
       <nav class="mobile-menu container" aria-label="فهرست موبایل">
         {#each links as link}
-          <a href={link.href} onclick={() => (mobileOpen = false)}>{link.label}<ArrowUpLeft size={16}/></a>
+          <a href={link.href} onclick={() => (mobileOpen = false)}>{link.label}</a>
         {/each}
-        <a href={appUrl} target="_blank" rel="noopener noreferrer">ورود به اپلیکیشن مایکا<ArrowUpLeft size={16}/></a>
+        <a href={appUrl} target="_blank" rel="noopener noreferrer">ورود به اپلیکیشن مایکا</a>
       </nav>
     {/if}
   </header>
@@ -85,7 +85,7 @@
       <div class="footer-contact">
         <strong>کنار شما هستیم</strong>
         <p>برای دریافت خدمات مراقبتی از اپلیکیشن مایکا استفاده کنید.</p>
-        <a href={appUrl} class="footer-app" target="_blank" rel="noopener noreferrer"><Headphones size={18}/> ورود به مایکا <ArrowUpLeft size={15}/></a>
+        <a href={appUrl} class="footer-app" target="_blank" rel="noopener noreferrer"><Headphones size={18}/> ورود به مایکا </a>
       </div>
     </div>
     <div class="container footer-bottom"><span>© MYCA ۱۴۰۵ — تمامی حقوق محفوظ است.</span><span>با مراقبت، برای زندگی</span></div>
