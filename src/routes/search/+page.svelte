@@ -3,7 +3,8 @@
   import { searchArticles } from '$lib/content.js';
   import { Search, Clock3, ArrowLeft, ChevronLeft } from '@lucide/svelte';
   import { categoryName } from '$lib/content.js';
-  $: q = ($page.url.searchParams.get('q') || '').trim().slice(0, 120);\n  $: results = searchArticles(q);
+  $: q = ($page.url.searchParams.get('q') || '').trim().slice(0, 120);
+  $: results = searchArticles(q);
 </script>
 <svelte:head>
   <title>{q ? 'نتایج «' + q + '»' : 'جست‌وجوی مقالات'} | مجله مایکا</title>
