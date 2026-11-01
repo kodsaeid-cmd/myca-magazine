@@ -53,18 +53,14 @@
   <div class="news-stage">
     {#if current}
       {#key current.slug}
-        <picture>
-          <source media="(max-width: 650px)" srcset={imageFor(current.image, 900, 82)} type="image/webp" />
-          <img
-            class="news-stage-photo"
-            src={imageFor(current.image, 1440, 82)}
-            alt={current.imageAlt}
-            loading="eager"
-            fetchpriority={active === 0 ? 'high' : 'auto'}
-            decoding="async"
-            in:fade={{ duration: 430 }}
-          />
-        </picture>
+        <img
+          class="news-stage-photo"
+          src={imageFor(current.image, 1900, 90)}
+          alt={current.imageAlt}
+          fetchpriority={active === 0 ? 'high' : 'auto'}
+          decoding="async"
+          in:fade={{ duration: 430 }}
+        />
         <div class="news-stage-shade"></div>
         <div class="news-stage-copy" in:fly={{ y: 16, duration: 370, delay: 75 }}>
           <span class="news-category">{categoryName(current.category)}</span>
@@ -91,22 +87,13 @@
         <h2>تازه‌ترین مطالب</h2>
       </div>
       <button class="news-play-toggle" onclick={togglePlayback} aria-label={playIsPaused ? 'پخش خودکار مطالب' : 'توقف پخش خودکار مطالب'} title={playIsPaused ? 'پخش خودکار' : 'توقف پخش خودکار'}>
-        <Play class="news-icon-play" size={16} fill="currentColor"/>
-        <Pause class="news-icon-pause" size={16} fill="currentColor"/>
+        {#if playIsPaused}<Play size={16} fill="currentColor"/>{:else}<Pause size={16} fill="currentColor"/>{/if}
       </button>
     </header>
     <div class="news-desk-items" aria-label="انتخاب مطلب برجسته">
       {#each items as item, index (item.slug)}
         <button
           type="button"
-          data-image-full={imageFor(item.image, 1440, 82)}
-          data-image-mobile={imageFor(item.image, 900, 82)}
-          data-image-alt={item.imageAlt}
-          data-category={categoryName(item.category)}
-          data-title={item.title}
-          data-excerpt={item.excerpt}
-          data-url={'/article/' + item.slug}
-          data-minutes={item.minutes}
           class:news-item-active={active === index}
           class="news-item"
           aria-pressed={active === index}
@@ -115,7 +102,7 @@
           onfocus={() => show(index, false)}
         >
           <span class="news-item-picture">
-            <img src={imageFor(item.image, 320, 85)} alt="" fetchpriority="low" loading={index === 0 ? 'eager' : 'lazy'} decoding="async"/>
+            <img src={imageFor(item.image, 320, 85)} alt="" loading={index === 0 ? 'eager' : 'lazy'} decoding="async"/>
           </span>
           <span class="news-item-text">
             <small>{categoryName(item.category)}</small>

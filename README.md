@@ -17,12 +17,12 @@
 - `/sitemap.xml` و `/robots.txt`
 
 ## توجه پیش از انتشار عمومی
-مقاله‌ها و تاریخ‌های انتشار فعلاً **نمونه نمایشی** هستند، نه محتوای منتشرشده یا تأییدشده مایکا. داده‌ها در `src/lib/content.js` ذخیره شده‌اند؛ اتصال به CMS در فاز بعد انجام می‌شود. تصاویر نسخه آزمایشی از Pexels در مرحله Build دریافت و به‌صورت فایل داخلی سایت منتشر می‌شوند؛ مراجعه‌کننده برای نمایش تصاویر به دامنه تصاویر خارجی وابسته نیست.
+مقاله‌ها و تاریخ‌های انتشار فعلاً **نمونه نمایشی** هستند، نه محتوای منتشرشده یا تأییدشده مایکا. داده‌ها در `src/lib/content.js` ذخیره شده‌اند؛ اتصال به CMS در فاز بعد انجام می‌شود. تصاویر نمونه از Unsplash به‌صورت URL خارجی بارگذاری می‌شوند و باید پیش از انتشار با تصاویر دارای مجوز و مرتبط جایگزین یا تأیید شوند.
 
 برای تغییر دامنه در سئو، مقدار `PUBLIC_SITE_URL` را در محیط تعریف کنید. برای لینک خدمات نیز `PUBLIC_APP_URL` را تنظیم کنید (پیش‌فرض `https://mycaapp.com`).
 
 ## ویژگی‌ها
-صفحات استاتیک پیش‌ساخته، متادیتای معنادار، سایت‌مپ، RTL، طراحی متناسب با موبایل و دسکتاپ، فونت Vazir، منوی موبایل و جست‌وجوی کاربردی.
+SSR برای ایندکس شدن، هدینگ‌ها و متادیتای معنادار، سایت‌مپ، RTL، طراحی متناسب با موبایل و دسکتاپ، فونت Vazirmatn، منوی موبایل و جست‌وجوی کاربردی.
 
 ## معماری
 این پروژه مستقل از اپلیکیشن اصلی است. ایجاد حساب کاربری، پرداخت، CRM و سیستم مدیریت محتوای واقعی در این نسخه پیاده‌سازی نشده است. لینک درخواست خدمات به اپلیکیشن اصلی هدایت می‌شود.
@@ -67,22 +67,14 @@ Directus یا CMS headless، مدل نویسنده و بازبین تخصصی، 
 توجه: برای استقرار Worker، نام Worker باید با `name` در `wrangler.jsonc` هماهنگ باشد (`myca-magazine-stage`). در این مرحله دامنه اصلی و Worker موجود سایت اعتماد و آسایش را تغییر ندهید.
 
 
-## تصاویر نسخه آزمایشی — میزبانی داخلی بدون عکس‌های شکسته
+## عکس‌های واقعی برای نسخه آزمایشی
+تصاویر مرتبط با سالمند، مراقب و کودک از منابع **Unsplash License** انتخاب شده‌اند. برای انتشار عمومی بهتر است ترکیب تصویری با عکس‌های اختصاصی و مجاز مایکا تکمیل شود.
 
-برای رفع مشکل نمایش تصاویر در برخی مرورگرها و شبکه‌ها، تمام عکس‌های صفحه اول و مقالات از مسیرهای محلی `/images/*.jpg` لود می‌شوند. اسکریپت `scripts/prepare-photography.mjs` قبل از `npm run build` (و در حالت توسعه قبل از `npm run dev`) تصاویر را به پوشه `static/images` انتقال می‌دهد. فایل‌های خروجی در Cloudflare Workers Static Assets میزبانی می‌شوند؛ بارگذاری عکس در مرورگر وابسته به دامنه‌های خارجی نیست.
+- [Age Cymru — پرستار و سالمند](https://unsplash.com/photos/nurse-smiling-with-elderly-patient-in-room-dMhB7w99ju8)
+- [Age Cymru — همراهی سالمند با واکر](https://unsplash.com/photos/caregiver-assists-elderly-woman-with-walker-2obyM4zYt3Y)
+- [Vitaly Gariev — بازی مادر و کودک](https://unsplash.com/photos/mother-and-son-building-with-colorful-blocks-aeurI5QKKOU)
+- [Age Cymru — فعالیت سالمندان و مراقب](https://unsplash.com/photos/caregiver-assisting-elderly-couple-with-coloring-bSXk1lOp8T0)
+- [Age Cymru — فعالیت اجتماعی سالمند](https://unsplash.com/photos/elderly-woman-dances-with-caregiver-in-a-community-room-ax8tB0iOk_g)
+- [Vitaly Gariev — بازی مادر و دختر](https://unsplash.com/photos/mother-and-daughter-having-a-pillow-fight-on-bed-dIK1Gh91rzc)
 
-**منابع عکس‌های رایگان (Pexels License):**
-
-- [مراقبت سالمند در خانه — Jsme MILA](https://www.pexels.com/photo/elderly-caregiver-assisting-senior-woman-at-home-29372727/)
-- [کمک به سالمند در حمام — Jsme MILA](https://www.pexels.com/photo/elderly-woman-receiving-home-health-care-assistance-29372532/)
-- [همراهی سالمند با وسیله کمکی — Caleb Oquendo](https://www.pexels.com/photo/caregiver-supports-elderly-woman-in-public-place-39005418/)
-- [بازی مادر و فرزند — Vitaly Gariev](https://www.pexels.com/photo/mother-and-son-playing-with-blocks-23224845/)
-- [آشپزی سالمند در منزل — Israel Torres](https://www.pexels.com/photo/elderly-woman-preparing-food-in-a-kitchen-16782671/)
-- [گفت‌وگوی مراقب با سالمند — Jsme MILA](https://www.pexels.com/photo/caregiver-talking-to-an-elderly-woman-on-a-wheelchair-18429310/)
-- [گفت‌وگوی سالمند با نوه — SHVETS production](https://www.pexels.com/photo/an-elderly-man-talking-to-his-granddaughter-while-sitting-on-the-couch-8899984/)
-- [بازی مادر و دختر — Ron Lach](https://www.pexels.com/photo/mother-and-daughter-playing-with-building-blocks-10554830/)
-- [خانواده چندنسلی در خانه — RDNE Stock project](https://www.pexels.com/photo/a-family-sitting-on-the-couch-7951621/)
-
-برای اطمینان از اینکه تصویر خراب دوباره به سایت منتشر نمی‌شود، اسکریپت در صورت خطای دریافت عکس یا دریافت فایل غیرعکس، Build را متوقف می‌کند. لازم است تصاویر تأییدشده و اختصاصی مایکا در مرحله انتشار نهایی جایگزین شوند.
-
-صفحه نخست از داده‌های نمونه در `src/lib/content.js` استفاده می‌کند. هنوز CMS زنده و جریان خودکار خبر وجود ندارد.
+صفحه نخست از مجموعه آخرین رکوردهای نمونه در `src/lib/content.js` استفاده می‌کند. انیمیشن و انتخاب دستی خبرها کار می‌کند، اما «خبر زنده» یا اتصال به CMS هنوز وجود ندارد؛ با اتصال پنل تحریریه، داده‌های `HeroNewsDesk` از پست‌های منتشرشده جدید تغذیه می‌شود.

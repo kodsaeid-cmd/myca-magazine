@@ -8,9 +8,7 @@
     "build": "vite build",
     "preview": "vite preview",
     "check": "svelte-kit sync && svelte-check --tsconfig ./jsconfig.json",
-    "deploy": "npm run build && wrangler deploy",
-    "prebuild": "node scripts/prepare-photography.mjs",
-    "predev": "node scripts/prepare-photography.mjs"
+    "deploy": "npm run build && wrangler deploy"
   },
   "dependencies": {
     "@lucide/svelte": "^1.61.0",
@@ -24,7 +22,6 @@
     "typescript": "^5.9.0",
     "vite": "^7.1.0",
     "@sveltejs/adapter-static": "^3.0.9",
-    "wrangler": "^4.0.0",
-    "sharp": "^0.34.4"
+    "wrangler": "^4.0.0"
   }
 }

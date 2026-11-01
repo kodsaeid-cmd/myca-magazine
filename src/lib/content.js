@@ -8,16 +8,17 @@ export const categories = [
   { slug: 'home-safety', label: 'خانه ایمن', short: 'خانه ایمن', icon: 'house', description: 'ایمن‌سازی محیط منزل برای همه سنین' }
 ];
 
-// Photos are mirrored at build time from verified Pexels sources and then
-// served from our own Cloudflare site, not loaded by the browser from a third party.
-const photo = (filename) => '/images/' + filename.replace(/\.jpe?g$/i, '.webp') + '?v=4';
+const photo = (id, width = 1600) =>
+  'https://images.unsplash.com/' + id + '?auto=format&fit=crop&w=' + width + '&q=88';
+
+// Free Unsplash-licensed photos, with photographers recorded in README; larger sizes for retina displays.
 export const articles = [
   {
     slug: 'elderly-care-at-home',
     title: 'مراقبت بهتر، زندگی آرام‌تر؛ راهنمای خانواده‌ها',
     category: 'elder-care',
     excerpt: 'از شناخت نیازهای روزمره تا ساختن یک برنامه مراقبتی قابل اعتماد؛ راهنمایی برای خانواده‌هایی که آرامش عزیزانشان مهم است.',
-    image: photo('care-main.jpg'),
+    image: photo('photo-1765896387387-0538bc9f997e', 2000),
     imageAlt: 'مراقب در کنار بانوی سالمند در محیط گرم و روشن',
     date: '۱۰ آبان ۱۴۰۵',
     minutes: 8,
@@ -34,8 +35,8 @@ export const articles = [
     title: '۱۰ نکته کاربردی برای ایمن‌سازی منزل سالمند',
     category: 'home-safety',
     excerpt: 'تغییرات ساده در نورپردازی، چیدمان و مسیرهای حرکت می‌توانند فضای خانه را قابل دسترس‌تر و آسوده‌تر کنند.',
-    image: photo('home-safety.jpg'),
-    imageAlt: 'سالمند در محیط خانه هنگام دریافت کمک برای ایمنی',
+    image: photo('photo-1600607687920-4e2a09cf159d'),
+    imageAlt: 'فضای داخلی روشن یک خانه',
     date: '۹ آبان ۱۴۰۵',
     minutes: 6,
     paragraphs: [
@@ -49,8 +50,8 @@ export const articles = [
     title: 'راهنمای انتخاب واکر مناسب برای سالمند',
     category: 'equipment',
     excerpt: 'هنگام انتخاب واکر چه نکاتی درباره قد، محیط منزل، پایداری و راحتی استفاده باید بررسی شود؟',
-    image: photo('walker-care.jpg'),
-    imageAlt: 'مراقب در کنار سالمند و وسیله کمکی حرکت',
+    image: photo('photo-1773227055624-07b515ba87c5'),
+    imageAlt: 'مراقب در حال کمک به بانوی سالمند کنار واکر',
     date: '۸ آبان ۱۴۰۵',
     minutes: 5,
     paragraphs: [
@@ -64,7 +65,7 @@ export const articles = [
     title: 'برنامه روزانه کودک؛ تعادل میان بازی و استراحت',
     category: 'child-family',
     excerpt: 'چطور یک روال قابل پیش‌بینی، انعطاف‌پذیر و متناسب با نیازهای خانواده داشته باشیم؟',
-    image: photo('child-play.jpg'),
+    image: photo('photo-1758598737547-666bce663667'),
     imageAlt: 'مادر و کودک در حال بازی با مکعب‌های رنگی در خانه',
     date: '۷ آبان ۱۴۰۵',
     minutes: 7,
@@ -79,7 +80,7 @@ export const articles = [
     title: 'تغذیه سالمند در خانه؛ برنامه‌ای ساده و متنوع',
     category: 'health',
     excerpt: 'ایده‌هایی برای برنامه‌ریزی وعده‌های متنوع و توجه به ترجیحات غذایی سالمندان.',
-    image: photo('senior-nutrition.jpg'),
+    image: photo('photo-1547592180-85f173990554'),
     imageAlt: 'غذای تازه و متنوع در بشقاب',
     date: '۶ آبان ۱۴۰۵',
     minutes: 6,
@@ -94,8 +95,8 @@ export const articles = [
     title: 'گفت‌وگوی مؤثر با سالمند؛ مهارت‌های ساده مراقبین',
     category: 'caregiver-skills',
     excerpt: 'احترام، گوش‌دادن فعال و حفظ اختیار فرد، پایه‌های یک رابطه مراقبتی سالم هستند.',
-    image: photo('caregiver-conversation.jpg'),
-    imageAlt: 'گفت‌وگوی همراه با احترام مراقب و سالمند',
+    image: photo('photo-1762955911431-4c44c7c3f408'),
+    imageAlt: 'مراقب در کنار زوج سالمند هنگام فعالیت هنری',
     date: '۵ آبان ۱۴۰۵',
     minutes: 5,
     paragraphs: [
@@ -109,8 +110,8 @@ export const articles = [
     title: 'زندگی فعال در سالمندی؛ قدم‌های کوچک روزانه',
     category: 'elder-care',
     excerpt: 'چطور ارتباط اجتماعی، سرگرمی و فعالیت متناسب با توان فرد را در روزمرگی حفظ کنیم؟',
-    image: photo('active-aging.jpg'),
-    imageAlt: 'گفت‌وگوی شاد سالمند با یکی از اعضای خانواده',
+    image: photo('photo-1773227060422-ee506b865417'),
+    imageAlt: 'بانوی سالمند در فعالیت گروهی همراه مراقب',
     date: '۴ آبان ۱۴۰۵',
     minutes: 7,
     paragraphs: [
@@ -124,7 +125,7 @@ export const articles = [
     title: 'چک‌لیست خانه ایمن برای کودک کنجکاو',
     category: 'child-family',
     excerpt: 'چند نکته ساده برای بررسی محیط بازی، نگهداری وسایل و کاهش خطرات قابل پیشگیری.',
-    image: photo('child-home-safety.jpg'),
+    image: photo('photo-1758874961117-e40e35b67331'),
     imageAlt: 'مادر و دختر در حال بازی در اتاق روشن',
     date: '۳ آبان ۱۴۰۵',
     minutes: 5,
@@ -139,8 +140,8 @@ export const articles = [
     title: 'چطور برای مراقبت از یکی از اعضای خانواده برنامه‌ریزی کنیم؟',
     category: 'elder-care',
     excerpt: 'تقسیم مسئولیت‌ها، ثبت نیازها و داشتن مسیر مشخص برای درخواست کمک.',
-    image: photo('family-care.jpg'),
-    imageAlt: 'چند نسل از اعضای خانواده در کنار هم',
+    image: photo('photo-1762955911431-4c44c7c3f408'),
+    imageAlt: 'جمعی از اعضای خانواده در کنار هم',
     date: '۲ آبان ۱۴۰۵',
     minutes: 6,
     paragraphs: [

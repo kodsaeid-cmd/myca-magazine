@@ -28,7 +28,6 @@
 </script>
 
 <svelte:head>
-  <script src="/magazine-home.js" defer></script>
   <title>مجله مایکا | دانش برای مراقبت بهتر، زندگی آرام‌تر</title>
   <meta name="description" content="مجله مایکا؛ تازه‌ترین راهنماهای مراقبت سالمند، کودک و خانواده، سلامت، ایمنی خانه و تجهیزات مراقبتی." />
   <link rel="canonical" href={$page.url.origin + '/'} />
