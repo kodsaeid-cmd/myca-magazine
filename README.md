@@ -30,3 +30,17 @@ SSR برای ایندکس شدن، هدینگ‌ها و متادیتای معن�
 ## توسعه آینده
 Directus یا CMS headless، مدل نویسنده و بازبین تخصصی، صفحه شهرها، دسته‌بندی کالاها، تحلیل رویدادها، و اتصال محتوایی به فروشگاه مایکا.
 **ایندکس موتور جست‌وجو:** فایل robots.txt تا زمانی که `PUBLIC_ALLOW_INDEXING=true` تنظیم نشده باشد، ربات‌ها را مسدود می‌کند؛ برای جلوگیری از ایندکس ناخواسته محتوای نمایشی.
+
+## Cloudflare Workers: staging روی mycablog.dandoonii.ir
+
+این مخزن برای پیش‌نمایش فعلی از خروجی **Static Prerender** در SvelteKit استفاده می‌کند؛ SSR و اتصال CMS در فاز تولید جداگانه بازگردانده می‌شود.
+
+- Worker مجزا: `myca-magazine-stage`، جدا از Worker سایت اعتماد و آسایش `etemaad-asayesh-stage`.
+- دامنه آزمایشی: `mycablog.dandoonii.ir`.
+- فایل `wrangler.jsonc` و دستور `npm run deploy` برای Workers Static Assets آماده است.
+- از Cloudflare > Workers & Pages > Create application > Import Git repository مخزن `kodsaeid-cmd/myca-magazine` را انتخاب کنید.
+- Production branch: `main`، Build command: `npm run build`، Deploy command: `npx wrangler deploy`، Node.js: 22 یا بالاتر.
+- ابتدا آدرس `*.workers.dev` را بررسی کنید. سپس در Worker > Settings > Domains & Routes > Add Custom Domain، فقط `mycablog.dandoonii.ir` را متصل کنید.
+- هرگز Worker فعلی `etemaad-asayesh-stage` یا DNS رکورد `stage.dandoonii.ir` را جایگزین نکنید.
+
+مقالات آزمایشی‌اند؛ `robots.txt` و هدر `X-Robots-Tag` ایندکس را ممنوع می‌کنند. برای محدودکردن دسترسی واقعی، Cloudflare Access لازم است.
