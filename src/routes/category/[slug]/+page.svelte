@@ -1,6 +1,6 @@
 <script>
   import { page } from '$app/stores';
-  import { ArrowLeft, Clock3, ChevronLeft } from 'lucide-svelte';
+  import { ArrowLeft, Clock3, ChevronLeft } from '@lucide/svelte';
   export let data;
 </script>
 
