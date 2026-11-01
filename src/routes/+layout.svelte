@@ -2,7 +2,7 @@
   import '../app.css';
   import { page } from '$app/stores';
   import { env } from '$env/dynamic/public';
-  import { Menu, X, Search, ArrowUpLeft, BookOpen, Instagram, Headphones, Sparkles } from 'lucide-svelte';
+  import { Menu, X, Search, ArrowUpLeft, BookOpen, Instagram, Headphones, Sparkles } from '@lucide/svelte';
 
   const appUrl = env.PUBLIC_APP_URL || 'https://mycaapp.com';
   let mobileOpen = false;
