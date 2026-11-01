@@ -1,4 +1,5 @@
 <script>
+  import '$lib/styles/magazine-home.css';
   import { env } from '$env/dynamic/public';
   import { page } from '$app/stores';
   import { Clock3, HeartHandshake, Baby, HeartPulse, Accessibility, GraduationCap, House, Headphones } from '@lucide/svelte';
