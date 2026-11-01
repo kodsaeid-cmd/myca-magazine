@@ -3,6 +3,7 @@
   import { fade, fly } from 'svelte/transition';
   import { Clock3, Pause, Play, Sparkles } from '@lucide/svelte';
   import { categoryName } from '$lib/content.js';
+  import { imageFor } from '$lib/images.js';
 
   export let items = [];
 
@@ -54,7 +55,7 @@
       {#key current.slug}
         <img
           class="news-stage-photo"
-          src={current.image}
+          src={imageFor(current.image, 1900, 90)}
           alt={current.imageAlt}
           fetchpriority={active === 0 ? 'high' : 'auto'}
           decoding="async"
@@ -101,7 +102,7 @@
           onfocus={() => show(index, false)}
         >
           <span class="news-item-picture">
-            <img src={item.image} alt="" loading={index === 0 ? 'eager' : 'lazy'} decoding="async"/>
+            <img src={imageFor(item.image, 320, 85)} alt="" loading={index === 0 ? 'eager' : 'lazy'} decoding="async"/>
           </span>
           <span class="news-item-text">
             <small>{categoryName(item.category)}</small>
