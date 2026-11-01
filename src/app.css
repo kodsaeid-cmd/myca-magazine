@@ -1,4 +1,6 @@
-@import 'vazir-font/dist/font-face.css';
+/* Two local Vazir WOFF2 weights only; avoid loading unused Black/Medium fonts. */
+@font-face{font-family:'Vazir';src:url('../node_modules/vazir-font/dist/Vazir-Regular.woff2') format('woff2');font-weight:400;font-style:normal;font-display:swap}
+@font-face{font-family:'Vazir';src:url('../node_modules/vazir-font/dist/Vazir-Bold.woff2') format('woff2');font-weight:700;font-style:normal;font-display:swap}
 
 :root{font-family:'Vazir',Tahoma,Arial,sans-serif;color:#062e5c;background:#f6fbfd;font-synthesis:none;text-rendering:optimizeLegibility;-webkit-font-smoothing:antialiased;--cyan:#00a4d4;--deep:#005474;--navy:#062e5c;--muted:#66758a;--line:#e2eaf0;--surface:#f5f8fb;--ice:#eaf7fb;--gold:#fcb400;--shadow:0 12px 35px rgba(6,46,92,.055);--radius:22px}
 *{box-sizing:border-box}html{scroll-behavior:smooth}body{margin:0;min-width:320px}button,input{font:inherit}button{cursor:pointer}a{color:inherit;text-decoration:none}img{display:block;max-width:100%}::selection{background:#b7edf6;color:#062e5c}
@@ -52,3 +54,5 @@ html,body,button,input,textarea,select{font-family:'Vazir',Tahoma,sans-serif!imp
 .article-card{cursor:pointer}
 .breadcrumb-separator{color:#99b2c1;margin-inline:3px;font-size:13px}
 @media(prefers-reduced-motion:reduce){.article-card,.article-image img,.compact-story{transition:none!important}}
+
+.mobile-menu[hidden]{display:none!important}
