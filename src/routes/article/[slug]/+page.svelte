@@ -47,7 +47,7 @@
       {#each a.paragraphs as paragraph}
         <p class="article-paragraph">{paragraph}</p>
       {/each}
-      <div class="article-note"><ShieldCheck size={19} style="display:inline;vertical-align:middle;margin-left:8px"/>این مطلب صرفاً اطلاعات عمومی و نمونه محتوای مجله است و جایگزین ارزیابی یا توصیه متخصص دارای صلاحیت نیست.</div>
+      <div class="article-note"><ShieldCheck size={19} style="display:inline;vertical-align:middle;margin-left:8px"/>این مقاله با هدف آگاهی عمومی تهیه شده و جایگزین ارزیابی یا توصیه متخصص دارای صلاحیت نیست.</div>
       <div class="editorial-bottom" style="margin-top:26px">
         <a href={'/category/' + a.category} class="text-link">مطالب بیشتر این موضوع </a>
         <a href={appUrl} class="btn-primary" target="_blank" rel="noopener noreferrer">خدمات مایکا </a>
