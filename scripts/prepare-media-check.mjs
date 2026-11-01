@@ -1,0 +1,21 @@
+// Standalone, low-risk MYCA image delivery test. No modifications to homepage.
+import { mkdir, writeFile } from 'node:fs/promises';
+import { join } from 'node:path';
+const dir=join(process.cwd(),'static','media-check');
+await mkdir(dir,{recursive:true});
+const urls=['https://images.pexels.com/photos/29372727/pexels-photo-29372727.jpeg?auto=compress&cs=tinysrgb&w=620','https://images.pexels.com/photos/18429310/pexels-photo-18429310.jpeg?auto=compress&cs=tinysrgb&w=620'];
+let bytes;let lastError;
+for(const url of urls){for(let i=0;i<2;i++){try{
+const response=await fetch(url,{signal:AbortSignal.timeout(20000),headers:{Accept:'image/jpeg,image/*'}});
+if(!response.ok||!(response.headers.get('content-type')||'').startsWith('image/'))throw Error('HTTP '+response.status);
+const data=Buffer.from(await response.arrayBuffer());
+if(data.length<5000||data.length>120000||data[0]!==255||data[1]!==216)throw Error('Bad JPEG bytes '+data.length);
+bytes=data;break;
+}catch(e){lastError=e;}}if(bytes)break;}
+if(!bytes)throw new Error('Probe image unavailable; cancel build: '+lastError?.message);
+const uri='data:image/jpeg;base64,'+bytes.toString('base64');
+await writeFile(join(dir,'sample.jpg'),bytes);
+await writeFile(join(dir,'sample.js'),'document.addEventListener("DOMContentLoaded",function(){document.getElementById("js-photo").src='+JSON.stringify(uri)+';});\n');
+const html="<!doctype html><html lang=\"fa\" dir=\"rtl\"><head><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width, initial-scale=1\"><title>آزمایش عکس مایکا بدون VPN</title>\n<style>*{box-sizing:border-box}body{margin:0;background:#f2f9fc;color:#073858;font:15px Tahoma,Arial,sans-serif;line-height:1.9}main{max-width:1100px;padding:24px;margin:30px auto}h1{font-size:25px;margin:0 0 12px}p{color:#46637a}.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin:24px 0}.card{background:#fff;border-radius:20px;padding:16px;border:1px solid #dcecf2}.card h2{font-size:15px;min-height:58px}.card img{width:100%;aspect-ratio:1.55;object-fit:cover;background:#d8edf2;border-radius:12px}.status{font-size:12px;font-weight:bold;color:#8c6600}.ok{color:#008457}.bad{color:#be3636}button{background:#007c9c;border:0;color:white;border-radius:10px;padding:12px 20px}a{color:#007c9c}@media(max-width:720px){.grid{grid-template-columns:1fr}.card h2{min-height:0}}</style>\n<script defer src=\"/media-check/sample.js\"></script></head><body><main>\n<h1>آزمایش مستقل تصاویر مایکا</h1><p>این صفحه به مجله اصلی دست نمی‌زند. لطفاً با VPN خاموش ببین هر سه عکس زیر می‌آیند یا نه.</p>\n<div class=\"grid\"><section class=\"card\"><h2>۱. عکس از فایل همان دامنه</h2><img id=\"direct-photo\" alt=\"پرستار و سالمند\" src=\"/media-check/sample.jpg?check=1\"><div class=\"status\" id=\"direct-status\">در حال بررسی</div></section>\n<section class=\"card\"><h2>۲. عکس داخل خود HTML</h2><img id=\"inline-photo\" alt=\"پرستار و سالمند\" src=\"data:image/jpeg;base64,__B64__\"><div class=\"status\" id=\"inline-status\">در حال بررسی</div></section>\n<section class=\"card\"><h2>۳. عکس از فایل JS همان دامنه</h2><img id=\"js-photo\" alt=\"پرستار و سالمند\"><div class=\"status\" id=\"js-status\">در حال بررسی</div></section></div>\n<p>اگر اولی خطا داد ولی سومی تصویر داشت، می‌توانیم تصاویر اصلی مجله را از JS بارگذاری کنیم. اگر دومی تصویر داشت، جاسازی کم‌حجم در HTML ممکن است. هیچ‌کدام از این تست‌ها چیدمان سایت اصلی را تغییر نمی‌دهند.</p>\n<button onclick=\"location.reload()\">آزمایش دوباره</button><p><a href=\"/\">بازگشت به مجله</a></p></main>\n<script>function test(){for(const n of ['direct','inline','js']){const el=document.getElementById(n+'-photo'),stat=document.getElementById(n+'-status');const good=el.complete&&el.naturalWidth>0;stat.textContent=good?'✓ عکس باز شد ('+el.naturalWidth+' px)':el.complete&&el.src?'× عکس باز نشد':'در حال دریافت';stat.className='status '+(good?'ok':'bad')}}document.querySelectorAll('img').forEach(i=>{i.addEventListener('load',test);i.addEventListener('error',test)});setTimeout(test,1200);setTimeout(test,6000);setTimeout(test,12000);</script>\n</body></html>";
+await writeFile(join(dir,'index.html'),html.replace('__B64__',bytes.toString('base64')),'utf8');
+console.log('MYCA media probe created: '+bytes.length+' JPEG bytes, isolated from homepage');
