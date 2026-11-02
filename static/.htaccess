@@ -1,6 +1,10 @@
 Options -Indexes
 DirectoryIndex index.html
 RewriteEngine On
+# Live MYCA editorial homepage uses the published layout; falls back to old index.html before first publish.
+RewriteRule ^$ api/homepage.php [L,QSA]
+# Authenticated draft preview is never indexable.
+RewriteRule ^editorial-preview/?$ api/homepage.php?preview=1 [L,QSA]
 # Server-rendered, indexable articles from the REAL CMS database.
 RewriteRule ^stories/?$ api/stories.php [L,QSA]
 RewriteRule ^stories/([a-z0-9-]+)/?$ api/story.php?slug=$1 [L,QSA]
