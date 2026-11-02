@@ -10,6 +10,7 @@
 
   const links = [
     { href: '/', label: 'خانه' },
+    { href: '/stories/', label: 'تازه‌ترین مطالب' },
     { href: '/category/elder-care', label: 'مراقبت سالمند' },
     { href: '/category/child-family', label: 'کودک و خانواده' },
     { href: '/category/health', label: 'سلامت و زندگی' },
