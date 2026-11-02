@@ -15,7 +15,7 @@ foreach ($statements as $sql) {
 foreach ($db->query("SHOW TABLES")->fetchAll(PDO::FETCH_COLUMN) as $table) {
   echo "Table: ".$table."\n";
 }
-$expected=['cms_users','cms_articles','cms_revisions','cms_media','cms_login_attempts','cms_audit_log'];
+$expected=['cms_users','cms_articles','cms_revisions','cms_media','cms_login_attempts','cms_audit_log','cms_editorial_layout','cms_editorial_layout_history'];
 $tables=$db->query("SHOW TABLES")->fetchAll(PDO::FETCH_COLUMN);
 foreach($expected as $t)if(!in_array($t,$tables,true))throw new RuntimeException('Missing table '.$t);
 
@@ -61,5 +61,40 @@ if (!str_contains($xml,'elderly-home-test') || !str_contains($xml,'<urlset')) {
   throw new RuntimeException('Dynamic sitemap is missing published article');
 }
 echo "PASS: server-rendered HTML metadata + dynamic sitemap from actual database.\n";
+
+
+// Editorial Layout Studio smoke test: published ordering, durable drafts and SSR.
+require_once __DIR__.'/../static/api/layout.php';
+$default=cms_layout_default();
+if(count($default['sections'])!==5)throw new RuntimeException('Missing default layout sections');
+$invalid=$default;
+$invalid['sections'][1]['id']='hero';
+try{cms_layout_normalize($invalid);throw new RuntimeException('Duplicate section was accepted');}
+catch(InvalidArgumentException $e){}
+$db->prepare("INSERT INTO cms_articles(slug,title,excerpt,body_html,status,category_slug,author_id,published_at) VALUES(?,?,?,?, 'published','elder-care',?,UTC_TIMESTAMP())")
+  ->execute(['another-elder-guide','مقاله دوم','خلاصه دوم','<p>آزمایش</p>',$id]);
+$secondId=(int)$db->lastInsertId();
+$layout=$default;
+$layout['sections'][0]['mode']='manual';
+$layout['sections'][0]['article_ids']=[$secondId,$aid];
+$layout=cms_layout_normalize($layout);
+$db->prepare('INSERT INTO cms_editorial_layout(id,draft_json,published_json,version,published_version,updated_by,published_at) VALUES(1,?,?,?,?,?,UTC_TIMESTAMP())')
+  ->execute([cms_layout_json($layout),cms_layout_json($layout),1,1,$id]);
+$db->prepare('INSERT INTO cms_editorial_layout_history(version,layout_json,published_by) VALUES(?,?,?)')
+  ->execute([1,cms_layout_json($layout),$id]);
+$published=cms_layout_public($db);
+$resolved=cms_layout_resolve($db,$published);
+if(($resolved['sections'][0]['articles'][0]['slug']??'')!=='another-elder-guide')
+  throw new RuntimeException('Manual article order was not preserved');
+if(($resolved['sections'][0]['articles'][1]['slug']??'')!=='elderly-home-test')
+  throw new RuntimeException('Second pinned article was not preserved');
+ob_start();
+include __DIR__.'/../static/api/homepage.php';
+$home=ob_get_clean();
+if(!str_contains($home,'another-elder-guide')||!str_contains($home,'elderly-home-test')||!str_contains($home,'<h1>'))
+  throw new RuntimeException('CMS homepage SSR did not render the published configuration');
+if(strpos($home,'another-elder-guide')>strpos($home,'elderly-home-test'))
+  throw new RuntimeException('CMS homepage SSR changed the manual order');
+echo "PASS: editable layout, validation, version history, published sorting and HTML homepage.\\n";
 
 ob_end_flush();
