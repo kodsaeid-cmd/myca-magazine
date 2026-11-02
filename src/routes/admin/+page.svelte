@@ -99,6 +99,24 @@
     try { articles = (await request('articles')).articles; }
     catch (e) { error = e.message; }
   }
+  async function installMoreEditorialArticles() {
+    clearMessages();
+    if (busy || user?.role !== 'admin') return;
+    if (!confirm('۱۰ مقاله جدید به مجله اضافه شود و سکشن تازه‌ترین مطالب برای نمایش تا ۱۳ مقاله گسترش یابد؟ محتوای قبلی حذف نمی‌شود.')) return;
+    busy = true;
+    try {
+      const r = await request('editorial-more-install', {
+        method: 'POST', headers: {'Content-Type':'application/json'},
+        body: JSON.stringify({ confirm_install: true, expand_layout: true })
+      });
+      notice = '۱۰ مقاله جدید بررسی و نصب شدند: ' + r.result.created +
+        ' مقاله افزوده و ' + r.result.already_present + ' مقاله از قبل موجود بود.' +
+        (r.result.layout_published ? ' ویترین ۲۰ مقاله‌ای به‌روزرسانی شد.' : '');
+      await loadDashboard();
+      await loadArticles();
+    } catch(e) { error = e.message; }
+    finally { busy = false; }
+  }
   async function installEditorialArticles() {
     clearMessages();
     if (busy || user?.role !== 'admin') return;
@@ -358,6 +376,12 @@
               <div class="cms-stat"><span><BookOpen size={19}/></span><strong>{Number(counts.draft || 0).toLocaleString('fa-IR')}</strong><small>پیش‌نویس</small></div>
             </div>
             <div class="cms-panel cms-welcome"><div><span class="cms-overline">EDITORIAL WORKFLOW</span><h2>از ایده تا مقاله قابل ایندکس</h2><p>ایجاد مقاله ← ویرایش تصویری ← تنظیم SEO ← بررسی سردبیر ← انتشار HTML و Sitemap</p><button class="cms-primary" onclick={openNew}><Plus size={18}/> شروع نوشتن</button></div><div class="cms-welcome-icon"><BookOpen size={80}/></div></div>
+            {#if user.role === 'admin'}
+              <div class="cms-panel">
+                <div class="cms-panel-head"><h3>گسترش مجله به ۲۰ مقاله</h3><button class="cms-primary" onclick={installMoreEditorialArticles} disabled={busy}><BookOpen size={18}/> افزودن ۱۰ مقاله جدید و تکمیل ویترین</button></div>
+                <p>۱۰ راهنمای تازه درباره ترخیص از بیمارستان، گزارش مراقب، زخم فشاری، خواب، ارتباط اجتماعی، فعالیت سالمند، دمانس، سلامت دهان و مراقبت کودک. همه از دیتابیس قابل ویرایش‌اند؛ تصاویر از پوشه محلی سایت بارگذاری می‌شوند. این عملیات سکشن «تازه‌ترین خواندنی‌ها» را تا ۱۳ کارت گسترش می‌دهد و چیدمان قبلی را در تاریخچه نگه می‌دارد.</p>
+              </div>
+            {/if}
             {#if user.role === 'admin'}
               <div class="cms-panel">
                 <div class="cms-panel-head"><h3>بسته ۱۰ مقاله تخصصی مایکا</h3><button class="cms-primary" onclick={installEditorialArticles} disabled={busy}><BookOpen size={18}/> نصب مقاله‌ها و جایگزینی ویترین</button></div>
