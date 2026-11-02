@@ -68,7 +68,7 @@ function cms_editorial_pack_install(PDO $db,int $uid,bool $replaceLayout): array
         (slug,title,excerpt,body_html,status,category_slug,cover_url,cover_alt,
          author_id,meta_title,meta_description,canonical_url,robots,focus_keyword,
          faq_json,featured,published_at)
-         VALUES(?,?,?,?,'published',?,?,?,?,?,?,?,'','index,follow',?,?,?,UTC_TIMESTAMP())");
+         VALUES(?,?,?,?,'published',?,?,?,?,?,?,'','index,follow',?,?,?,UTC_TIMESTAMP())");
       $q->execute([
         $article['slug'],$article['title'],$article['excerpt'],$body,$article['category_slug'],
         $article['cover_url'],$article['cover_alt'],$uid,$article['meta_title'],$article['meta_description'],
