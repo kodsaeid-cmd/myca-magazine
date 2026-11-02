@@ -102,21 +102,23 @@ jobs:
           FTPS_CA: ${{ secrets.MYCA_FTPS_CA_PEM }}
         run: |
           set -euo pipefail
-          if [ -z "$FTPS_CA" ]; then
-            echo "::error::MYCA_FTPS_CA_PEM is missing. Ask ParsPack for the FTP service certificate and verify its SHA-256 fingerprint with hosting support before trusting it."
-            exit 1
+          if [ -n "$FTPS_CA" ]; then
+            # Use this only for a PEM whose fingerprint/hostname was verified
+            # with ParsPack through an independent trusted support channel.
+            printf '%s\n' "$FTPS_CA" > "$RUNNER_TEMP/myca-ftps-ca.pem"
+            chmod 600 "$RUNNER_TEMP/myca-ftps-ca.pem"
+            openssl x509 -in "$RUNNER_TEMP/myca-ftps-ca.pem" -noout -checkend 86400 >/dev/null || {
+              echo "::error::Verified FTPS certificate has expired or is invalid."
+              exit 1
+            }
+          else
+            echo "No private CA override: relying on publicly trusted FTP TLS certificate."
           fi
-          printf '%s\n' "$FTPS_CA" > "$RUNNER_TEMP/myca-ftps-ca.pem"
-          chmod 600 "$RUNNER_TEMP/myca-ftps-ca.pem"
-          openssl x509 -in "$RUNNER_TEMP/myca-ftps-ca.pem" -noout -checkend 86400 >/dev/null || {
-            echo "::error::The trusted FTPS certificate has expired or is invalid."
-            exit 1
-          }
 
       - name: Secure FTPS deploy or dry-run
         uses: SamKirkland/FTP-Deploy-Action@v4.4.0
         env:
-          NODE_EXTRA_CA_CERTS: ${{ runner.temp }}/myca-ftps-ca.pem
+          NODE_EXTRA_CA_CERTS: ${{ secrets.MYCA_FTPS_CA_PEM != '' && format('{0}/myca-ftps-ca.pem', runner.temp) || '' }}
         with:
           server: ${{ vars.MYCA_FTPS_SERVER || 'mycablog.dandoonii.ir' }}
           username: myca-deploy@mycablog.dandoonii.ir
