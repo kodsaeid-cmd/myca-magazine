@@ -72,6 +72,49 @@ try {
     $recent=$db->query('SELECT id,slug,title,status,updated_at FROM cms_articles ORDER BY updated_at DESC LIMIT 6')->fetchAll();
     cms_json(['ok'=>true,'counts'=>$counts,'recent'=>$recent]);
   }
+  if ($route==='users'&&$method==='GET') {
+    cms_user('admin');
+    $users=$db->query('SELECT id,email,display_name,role,active,created_at,last_login_at FROM cms_users ORDER BY id ASC LIMIT 100')->fetchAll();
+    cms_json(['ok'=>true,'users'=>$users]);
+  }
+  if ($route==='user-create'&&$method==='POST') {
+    cms_csrf();$admin=cms_user('admin');$data=cms_input();
+    $email=filter_var(strtolower(trim((string)($data['email']??''))),FILTER_VALIDATE_EMAIL);
+    $name=cms_clean_text($data['display_name']??'',120);
+    $password=(string)($data['password']??'');
+    $role=cms_clean_text($data['role']??'author',20);
+    if (!$email||!$name||strlen($password)<14||!in_array($role,['admin','editor','author'],true)) cms_error('نام، ایمیل، نقش معتبر و رمز حداقل ۱۴ کاراکتری لازم است.');
+    try {
+      $q=$db->prepare('INSERT INTO cms_users(email,display_name,password_hash,role) VALUES(?,?,?,?)');
+      $q->execute([$email,$name,password_hash($password,PASSWORD_DEFAULT),$role]);
+    } catch(PDOException $e) {
+      if ($e->getCode()==='23000') cms_error('این ایمیل قبلاً ثبت شده است.',409);
+      throw $e;
+    }
+    $id=(int)$db->lastInsertId();
+    cms_log((int)$admin['id'],'create','user',$id);
+    cms_json(['ok'=>true,'id'=>$id]);
+  }
+  if ($route==='user-update'&&$method==='POST') {
+    cms_csrf();$admin=cms_user('admin');$data=cms_input();
+    $id=(int)($data['id']??0);$role=cms_clean_text($data['role']??'',20);
+    $active=!empty($data['active'])?1:0;
+    if($id<1||!in_array($role,['admin','editor','author'],true))cms_error('شناسه یا نقش نامعتبر است.');
+    if($id===(int)$admin['id'] && ($role!=='admin'||$active!==1))cms_error('امکان غیرفعال‌سازی یا تنزل نقش حساب مدیر خودت وجود ندارد.',403);
+    $db->beginTransaction();
+    try {
+      $q=$db->prepare('SELECT role,active FROM cms_users WHERE id=? FOR UPDATE');$q->execute([$id]);$before=$q->fetch();
+      if(!$before){$db->rollBack();cms_error('کاربر پیدا نشد.',404);}
+      if($before['role']==='admin' && (int)$before['active']===1 && ($role!=='admin'||$active!==1)){
+        $n=(int)$db->query("SELECT COUNT(*) FROM cms_users WHERE role='admin' AND active=1")->fetchColumn();
+        if($n<2){$db->rollBack();cms_error('آخرین مدیر فعال را نمی‌توان غیرفعال کرد.',403);}
+      }
+      $q=$db->prepare('UPDATE cms_users SET role=?,active=? WHERE id=?');
+      $q->execute([$role,$active,$id]);$db->commit();
+    }catch(Throwable $e){if($db->inTransaction())$db->rollBack();throw $e;}
+    cms_log((int)$admin['id'],'update','user',$id);
+    cms_json(['ok'=>true,'id'=>$id]);
+  }
   if ($route==='articles'&&$method==='GET') {
     $u=cms_user();
     $search=cms_clean_text($_GET['q']??'',90);
