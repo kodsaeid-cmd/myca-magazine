@@ -1,0 +1,66 @@
+.els{color:#062e5c}.els button,.els input,.els select{font:inherit}
+.els-topbar{display:flex;justify-content:space-between;align-items:flex-start;gap:20px;flex-wrap:wrap;margin-bottom:14px}
+.els-overline{font-weight:800;font-size:10px;letter-spacing:1px;color:#00a4d4}
+.els-topbar h2{font-size:24px;line-height:1.5;margin:4px 0}
+.els-topbar p{font-size:13px;color:#66758a;line-height:1.9;margin:0}
+.els-actions{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.els-actions button,.els-preview-link{display:inline-flex;align-items:center;gap:7px;padding:10px 14px;border-radius:12px;font-size:12px;font-weight:800;cursor:pointer}
+.els-secondary{background:white;border:1px solid #e2eaf0;color:#062e5c}
+.els-primary{background:#005474;border:1px solid #005474;color:white}
+.els button:disabled{opacity:.45;cursor:not-allowed}
+.els-alert{border-radius:12px;padding:12px 16px;margin:12px 0;font-size:13px}
+.els-error{background:#fff1f1;color:#ab2c38}.els-success{background:#edf9f0;color:#187d43}
+.els-unsaved{background:#fff7e5;color:#8a5900;border-radius:10px;padding:9px 13px;font-size:12px}
+.els-status{display:flex;flex-wrap:wrap;gap:8px;margin:14px 0 20px}
+.els-status span{border:1px solid #e2eaf0;border-radius:30px;background:white;padding:6px 12px;font-size:11px;color:#66758a}
+.els-columns{display:grid;grid-template-columns:minmax(0,1.65fr) minmax(310px,.9fr);gap:16px;align-items:start}
+.els-sections{display:flex;flex-direction:column;gap:14px;min-width:0}
+.els-section{background:white;border:1px solid #e2eaf0;border-radius:18px;overflow:hidden}
+.els-inactive{opacity:.65}
+.els-section-head{display:flex;align-items:center;gap:10px;padding:15px;border-bottom:1px solid #e9f0f4;background:#f7fbfd}
+.els-grip{cursor:grab;color:#7894a2}.els-section-label{display:flex;flex-direction:column;gap:3px;flex:1;min-width:0}
+.els-section-label small{font-size:10px;color:#008db8}.els-section-label strong{font-size:15px}
+.els-section-actions{display:flex;gap:3px}
+.els-section-actions button,.els-pin button,.els-switch button{border:0;background:transparent;color:#005474;border-radius:9px;min-width:30px;min-height:30px;cursor:pointer;display:inline-flex;align-items:center;justify-content:center}
+.els-section-actions button:hover,.els-pin button:hover{background:#eaf7fb}
+.els-section-actions .els-enabled{color:#20a65a}
+.els-section-body{padding:16px;display:flex;flex-direction:column;gap:13px}
+.els-field{display:flex;flex-direction:column;gap:6px;font-size:12px;font-weight:700;color:#66758a}
+.els-field input,.els-field select,.els-picker select{border:1px solid #dfe9ef;border-radius:11px;background:white;color:#062e5c;padding:10px;min-width:0;min-height:43px}
+.els-field-grid{display:grid;grid-template-columns:1.5fr .7fr;gap:10px}
+.els-picker{display:flex;gap:8px}
+.els-picker select{flex:1;width:100%}
+.els-picker button{border:0;border-radius:10px;background:#eaf7fb;color:#005474;font-size:12px;font-weight:800;padding:8px 13px;display:flex;gap:5px;align-items:center;cursor:pointer}
+.els-help{font-size:11px;color:#66758a;line-height:1.9;margin:0}
+.els-pins{display:flex;flex-direction:column;gap:7px}
+.els-pin{display:flex;gap:5px;align-items:center;padding:7px 9px;background:#f5f8fb;border:1px solid #e2eaf0;border-radius:11px;cursor:grab;color:#005474}
+.els-pin span{flex:1;font-size:12px;line-height:1.7;min-width:0}
+.els-preview-panel{border:1px solid #e2eaf0;border-radius:18px;background:white;padding:16px;position:sticky;top:12px}
+.els-preview-title{display:flex;justify-content:space-between;gap:10px;align-items:center;margin-bottom:14px}
+.els-preview-title h3,.els-history h3{font-size:16px;margin:0 0 5px}
+.els-preview-title small{font-size:11px;color:#66758a}
+.els-switch{display:flex;background:#f5f8fb;border-radius:10px;padding:3px}
+.els-switch .active{background:#eaf7fb;color:#008db8}
+.els-preview-frame{border:1px solid #e2eaf0;border-radius:14px;background:#f5f8fb;max-height:550px;overflow:auto;padding:11px;transition:max-width .2s}
+.els-preview-frame.els-mobile{max-width:280px;margin:auto}
+.els-frame-header{background:white;padding:9px;border-radius:9px;display:flex;align-items:center;justify-content:space-between;font-size:11px;font-weight:800;margin-bottom:8px}
+.els-preview-section{background:white;border-radius:11px;padding:11px;margin-top:7px}
+.els-preview-section>strong{font-size:12px;display:block;margin-bottom:8px}
+.els-preview-cards{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:5px}
+.els-preview-hero .els-preview-card:first-child{grid-column:1/-1;min-height:68px;background:#005474;color:white}
+.els-preview-card{background:#eaf7fb;border-radius:8px;padding:9px;color:#005474;font-size:10px;line-height:1.6;min-height:43px}
+.els-auto{border:1px dashed #81cfde;background:#f2fbfe}
+.els-preview-categories{display:grid;grid-template-columns:repeat(2,1fr);gap:5px}
+.els-preview-categories span{background:#eaf7fb;padding:8px 4px;text-align:center;border-radius:7px;font-size:10px}
+.els-preview-banner{padding:12px;background:#005474;border-radius:9px;color:white;font-size:11px}
+.els-preview-panel>.els-help{margin:14px 0}
+.els-preview-link{justify-content:center;width:100%;background:#eaf7fb;border:1px solid #d0eaf1;color:#005474;text-decoration:none;margin:8px 0}
+.els-public-link{background:white}
+.els-history{margin-top:22px;border-top:1px solid #e2eaf0;padding-top:17px}
+.els-history-row{display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid #f2f5f8;padding:10px 0;gap:8px}
+.els-history-row div{display:flex;flex-direction:column;gap:4px}
+.els-history-row strong{font-size:12px}.els-history-row small{font-size:10px;color:#66758a}
+.els-history-row button{border:1px solid #e2eaf0;background:white;color:#005474;border-radius:9px;display:flex;gap:4px;align-items:center;padding:7px;font-size:11px;cursor:pointer}
+.els-empty{padding:25px;border:1px dashed #d0eaf1;border-radius:12px;color:#66758a}
+@media(max-width:1180px){.els-columns{grid-template-columns:1fr}.els-preview-panel{position:static}}
+@media(max-width:610px){.els-field-grid{grid-template-columns:1fr}.els-section-head{padding:11px 7px}.els-section-actions button{min-width:27px}.els-section-body{padding:12px}.els-picker{flex-wrap:wrap}.els-picker select{flex-basis:100%}.els-actions{width:100%}}
