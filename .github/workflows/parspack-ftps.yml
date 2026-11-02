@@ -1,14 +1,13 @@
 name: MYCA CMS | Experimental ParsPack FTPS
 
-# Safety: manual-only until the first dry run and actual release are verified.
-# FTP account is scoped to /home/mycabl/public_html.
+# Safe continuous delivery, opt-in only after verified FTPS certificate trust.
+# The FTP account must be restricted to the experimental domain webroot.
 on:
-  # Workflow changes run a safe FTPS dry-run; publication always requires an explicit manual action.
-  # Publication is NEVER enabled on a push event.
-  push:
-    branches: [main]
-    paths:
-      - '.github/workflows/parspack-ftps.yml'
+  # Runs after passing MySQL + Svelte CI. Secrets and explicit repository variable
+  # MYCA_AUTO_DEPLOY=true are required for automatic publication.
+  workflow_run:
+    workflows: ['Magazine CI']
+    types: [completed]
   workflow_dispatch:
     inputs:
       publish:
@@ -26,12 +25,20 @@ concurrency:
 
 jobs:
   build-and-deploy:
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      (github.event.workflow_run.conclusion == 'success' &&
+       github.event.workflow_run.event == 'push' &&
+       github.event.workflow_run.head_branch == 'main' &&
+       vars.MYCA_AUTO_DEPLOY == 'true')
     name: Build, validate and ${{ inputs.publish && 'publish' || 'preview FTPS changes' }}
     runs-on: ubuntu-latest
     timeout-minutes: 25
     steps:
       - name: Checkout magazine source
         uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event_name == 'workflow_run' && github.event.workflow_run.head_sha || github.sha }}
 
       - name: Set up Node.js
         uses: actions/setup-node@v4
@@ -54,6 +61,10 @@ jobs:
         run: |
           set -euo pipefail
           test -s build/index.html
+          test -s build/index.php
+          test -s build/vazir-local.css
+          test -s build/fonts/Vazir-Regular.woff2
+          test -s build/fonts/Vazir-Bold.woff2
           test -s build/admin/index.html
           test -s build/api/index.php
           test -s build/api/homepage.php
@@ -66,7 +77,7 @@ jobs:
           grep -F 'api/stories.php' build/.htaccess
           # Never overwrite build/.htaccess with a static-only rewrite:
           # that would break the new CMS homepage, dynamic articles and editor.
-          printf 'User-agent: *\\nDisallow: /\\n' > build/robots.txt
+          printf 'User-agent: *\nDisallow: /\n' > build/robots.txt
           cat >> build/.htaccess <<'HTACCESS'
 
           # All dandoonii.ir domains are temporary experiments.
@@ -85,10 +96,29 @@ jobs:
             exit 1
           fi
 
-      - name: FTPS ${{ inputs.publish && 'publish' || 'dry-run only (no changes)' }}
+      - name: Trust only the verified ParsPack FTPS certificate
+        shell: bash
+        env:
+          FTPS_CA: ${{ secrets.MYCA_FTPS_CA_PEM }}
+        run: |
+          set -euo pipefail
+          if [ -z "$FTPS_CA" ]; then
+            echo "::error::MYCA_FTPS_CA_PEM is missing. Ask ParsPack for the FTP service certificate and verify its SHA-256 fingerprint with hosting support before trusting it."
+            exit 1
+          fi
+          printf '%s\n' "$FTPS_CA" > "$RUNNER_TEMP/myca-ftps-ca.pem"
+          chmod 600 "$RUNNER_TEMP/myca-ftps-ca.pem"
+          openssl x509 -in "$RUNNER_TEMP/myca-ftps-ca.pem" -noout -checkend 86400 >/dev/null || {
+            echo "::error::The trusted FTPS certificate has expired or is invalid."
+            exit 1
+          }
+
+      - name: Secure FTPS deploy or dry-run
         uses: SamKirkland/FTP-Deploy-Action@v4.4.0
+        env:
+          NODE_EXTRA_CA_CERTS: ${{ runner.temp }}/myca-ftps-ca.pem
         with:
-          server: mycablog.dandoonii.ir
+          server: ${{ vars.MYCA_FTPS_SERVER || 'mycablog.dandoonii.ir' }}
           username: myca-deploy@mycablog.dandoonii.ir
           password: ${{ secrets.MYCA_FTPS_PASSWORD }}
           protocol: ftps
@@ -98,7 +128,7 @@ jobs:
           # TEMP EXPERIMENT ONLY. The cPanel FTP account's home is ALREADY public_html.
           # Adding another public_html/ would upload into the wrong folder.
           server-dir: ./
-          dry-run: ${{ github.event_name != 'workflow_dispatch' || !inputs.publish }}
+          dry-run: ${{ github.event_name == 'workflow_dispatch' && !inputs.publish }}
           dangerous-clean-slate: false
           timeout: 60000
           log-level: standard
@@ -109,11 +139,12 @@ jobs:
             **/cgi-bin/**
             **/.well-known/**
             **/media/uploads/**
+            **/media/editorial/**
 
       - name: Result
         shell: bash
         run: |
-          if [ "${{ github.event_name }}" = 'workflow_dispatch' ] && [ "${{ inputs.publish }}" = 'true' ]; then
+          if [ "${{ github.event_name }}" = 'workflow_run' ] || { [ "${{ github.event_name }}" = 'workflow_dispatch' ] && [ "${{ inputs.publish }}" = 'true' ]; }; then
             echo 'TEMP CMS uploaded to mycablog.dandoonii.ir. Verify /admin/, /api/, /stories/ and homepage. Never deploy this noindex build to blog.mycaapp.ir.'
           else
             echo 'FTPS preview complete. Server files were NOT changed.'
