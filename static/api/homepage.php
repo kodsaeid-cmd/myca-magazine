@@ -1,7 +1,7 @@
 <?php
 declare(strict_types=1);
-// Server-rendered CMS homepage; old static homepage remains the safe fallback
-// until the editor explicitly publishes the first layout.
+// The ONLY public homepage renderer. All article cards come from the CMS database.
+// If the database is unavailable, fail explicitly; NEVER show obsolete static demos.
 require_once __DIR__.'/layout.php';
 $preview=isset($_GET['preview']) && $_GET['preview']==='1';
 if($preview) cms_user('editor');
@@ -9,18 +9,18 @@ try {
   $db=cms_db();
   $row=cms_layout_record($db);
   $config=$preview?($row?cms_layout_parse($row['draft_json']):cms_layout_default()):($row?cms_layout_parse($row['published_json']):null);
-  if(!$config&&!$preview) {
-    header('Cache-Control:public,max-age=90');
-    readfile(__DIR__.'/../index.html');
-    exit;
-  }
+  // No published layout yet? Still show live articles from MySQL, never the
+  // prerendered demonstration homepage or hard-coded content.js.
   $layout=cms_layout_resolve($db,$config??cms_layout_default());
 } catch(Throwable $e) {
   error_log('MYCA editorial homepage: '.$e->getMessage());
-  if($preview) {http_response_code(503);header('Content-Type:text/plain; charset=utf-8');echo 'پیش‌نمایش در دسترس نیست؛ دیتابیس و جدول چیدمان را بررسی کنید.';exit;}
-  // Do not break the running magazine when the optional migration is pending.
-  header('Cache-Control:public,max-age=90');
-  readfile(__DIR__.'/../index.html');
+  http_response_code(503);
+  header('Content-Type:text/html; charset=utf-8');
+  header('Cache-Control:no-store, private');
+  header('X-Robots-Tag:noindex, nofollow');
+  echo '<!doctype html><html lang="fa" dir="rtl"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">';
+  echo '<title>مجله مایکا | موقتاً در دسترس نیست</title><body style="font:16px/2 Tahoma,sans-serif;background:#f5f8fb;color:#062e5c;max-width:720px;margin:8vh auto;padding:24px">';
+  echo '<h1>مجله مایکا موقتاً در دسترس نیست</h1><p>اتصال به مرکز محتوای مجله برقرار نشد. لطفاً کمی بعد دوباره مراجعه کنید.</p><p><a href="tel:41124">پشتیبانی ۴۱۱۲۴</a></p></body></html>';
   exit;
 }
 $h=static fn($v)=>htmlspecialchars((string)$v,ENT_QUOTES|ENT_SUBSTITUTE,'UTF-8');
