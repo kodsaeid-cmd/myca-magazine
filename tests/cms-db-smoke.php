@@ -97,4 +97,39 @@ if(strpos($home,'another-elder-guide')>strpos($home,'elderly-home-test'))
   throw new RuntimeException('CMS homepage SSR changed the manual order');
 echo "PASS: editable layout, validation, version history, published sorting and HTML homepage.\\n";
 
+
+// Ten source-backed MYCA articles are real editable MySQL records.
+require_once __DIR__.'/../static/api/editorial-import.php';
+$pack=cms_editorial_pack();
+if(count($pack)!==10)throw new RuntimeException('Editorial pack is incomplete');
+foreach($pack as $p){
+  if(count($p['sections'])<4 || count($p['faq_json'])<2 || count($p['sources'])<1)
+    throw new RuntimeException('Editorial pack article has incomplete structure');
+  if(strlen($p['meta_title'])>250 || strlen($p['meta_description'])>320)
+    throw new RuntimeException('SEO field exceeds CMS schema');
+}
+$first=cms_editorial_pack_install($db,$id,true);
+if($first['created']!==10 || $first['layout_published']!==true)
+  throw new RuntimeException('Editorial pack install did not insert/publish ten articles');
+$again=cms_editorial_pack_install($db,$id,false);
+if($again['created']!==0 || $again['already_present']!==10)
+  throw new RuntimeException('Editorial pack import is not idempotent');
+$publishedArticles=$db->query("SELECT slug,title,body_html,robots,cover_url,faq_json FROM cms_articles WHERE slug='choose-elderly-caregiver-at-home'")->fetch();
+if(!$publishedArticles || !str_contains($publishedArticles['body_html'],'<h2>') ||
+   !str_contains($publishedArticles['body_html'],'https://www.nia.nih.gov/') ||
+   $publishedArticles['robots']!=='index,follow' ||
+   !str_starts_with($publishedArticles['cover_url'],'/media/editorial/'))
+  throw new RuntimeException('Full SEO article content did not persist');
+$editorialLayout=cms_layout_resolve($db,cms_layout_public($db));
+if(count($editorialLayout['sections'][0]['articles'])!==4 ||
+   count($editorialLayout['sections'][2]['articles'])!==3 ||
+   count($editorialLayout['sections'][3]['articles'])!==3)
+   throw new RuntimeException('Editorial 4+3+3 homepage layout failed');
+ob_start();
+include __DIR__.'/../static/api/homepage.php';
+$realHomepage=ob_get_clean();
+if(!str_contains($realHomepage,'choose-elderly-caregiver-at-home'))
+  throw new RuntimeException('Real homepage did not switch to CMS articles');
+echo "PASS: ten researched articles imported, preserved, SEO metadata, editability and homepage publication.\\n";
+
 ob_end_flush();
