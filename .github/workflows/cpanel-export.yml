@@ -4,8 +4,7 @@ on:
   workflow_dispatch:
   push:
     branches: [main]
-    paths:
-      - '.github/workflows/cpanel-export.yml'
+
 
 permissions:
   contents: write
@@ -63,7 +62,7 @@ jobs:
           set -euo pipefail
           TAG="cpanel-$(git rev-parse --short HEAD)"
           gh release create "$TAG" myca-magazine-cpanel.zip \
-            --title "MYCA Magazine - cPanel Migration Package" \
-            --notes "Prebuilt static magazine ZIP. Extract its CONTENTS directly inside the cPanel document root. Includes all pages, local JPEGs, CSS, JS, fonts and Apache .htaccess. Do not change DNS until tested." \
-            --latest=false
+            --title "MYCA Magazine - Ready for cPanel" \
+            --notes "Ready to upload to ParsPack cPanel public_html. Contains all pages, assets, images, fonts and .htaccess. Extract inside public_html. Do not change DNS." \
+            --latest
           echo "Direct download: https://github.com/${GITHUB_REPOSITORY}/releases/download/${TAG}/myca-magazine-cpanel.zip"
