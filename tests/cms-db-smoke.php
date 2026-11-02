@@ -1,5 +1,6 @@
 <?php
 declare(strict_types=1);
+ob_start(); // Keep response headers writable while exercising HTML renderers in CLI.
 // Executed only in GitHub Actions against an ephemeral MySQL container.
 // Tests actual PDO persistence and HTML sanitization, not mocked data.
 require __DIR__.'/../static/api/bootstrap.php';
@@ -50,7 +51,7 @@ $_GET['slug']='elderly-home-test';
 ob_start();
 include __DIR__.'/../static/api/story.php';
 $html=ob_get_clean();
-if (!str_contains($html,'عنوان آزمایشی') || !str_contains($html,'<h1>') || !str_contains($html,'application/ld+json') || !str_contains($html,'canonical')) {
+if (!str_contains($html,'نسخه ویرایش‌شده') || !str_contains($html,'<h1>') || !str_contains($html,'application/ld+json') || !str_contains($html,'canonical')) {
   throw new RuntimeException('SEO SSR article HTML failed: '.substr($html,0,400));
 }
 ob_start();
@@ -60,3 +61,5 @@ if (!str_contains($xml,'elderly-home-test') || !str_contains($xml,'<urlset')) {
   throw new RuntimeException('Dynamic sitemap is missing published article');
 }
 echo "PASS: server-rendered HTML metadata + dynamic sitemap from actual database.\n";
+
+ob_end_flush();
