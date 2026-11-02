@@ -2,6 +2,7 @@
 declare(strict_types=1);
 require_once __DIR__.'/bootstrap.php';
 require_once __DIR__.'/layout.php';
+require_once __DIR__.'/editorial-import.php';
 ini_set('display_errors','0');
 header('X-Content-Type-Options: nosniff');
 header('Referrer-Policy: same-origin');
@@ -16,6 +17,32 @@ try {
   if ($route==='published'&&$method==='GET') {
     $q=$db->query("SELECT slug,title,excerpt,category_slug,cover_url,cover_alt,published_at FROM cms_articles WHERE status='published' AND published_at <= UTC_TIMESTAMP() ORDER BY published_at DESC LIMIT 24");
     cms_json(['ok'=>true,'articles'=>$q->fetchAll()]);
+  }
+
+  // First-party collection; only administrators can import or replace the showcase.
+  if ($route==='editorial-pack-preview'&&$method==='GET') {
+    cms_user('admin');
+    $p=cms_editorial_pack();
+    $q=$db->query("SELECT slug,status FROM cms_articles ORDER BY id DESC LIMIT 1000");
+    $current=[];foreach($q->fetchAll() as $row)$current[$row['slug']]=$row['status'];
+    cms_json(['ok'=>true,'articles'=>array_map(static fn($a)=>[
+      'title'=>$a['title'],'slug'=>$a['slug'],'category_slug'=>$a['category_slug'],
+      'cover_url'=>$a['cover_url'],'exists'=>array_key_exists($a['slug'],$current),
+      'existing_status'=>$current[$a['slug']]??null,
+      'sections'=>count($a['sections']),'sources'=>count($a['sources'])
+    ],$p)]);
+  }
+  if ($route==='editorial-pack-install'&&$method==='POST') {
+    cms_csrf();$u=cms_user('admin');$data=cms_input();
+    if(empty($data['confirm_install'])) cms_error('تأیید نصب بسته محتوایی لازم است.');
+    try {
+      $result=cms_editorial_pack_install($db,(int)$u['id'],!empty($data['replace_layout']));
+    }catch(RuntimeException $e){
+      if(str_starts_with($e->getMessage(),'PACK_SLUG_CONFLICT:'))
+        cms_error('یکی از نامک‌های بسته در دیتابیس وجود دارد ولی منتشر نشده است: '.substr($e->getMessage(),19),409);
+      throw $e;
+    }
+    cms_json(['ok'=>true,'result'=>$result]);
   }
 
   // Editorial Layout Studio: drafts and public versions are separate.
