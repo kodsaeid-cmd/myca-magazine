@@ -33,6 +33,8 @@ jobs:
         run: |
           set -euo pipefail
           test -s build/index.html
+          test -s build/index.php
+          ! grep -q 'HeroNewsDesk' build/index.html
           test -s build/admin/index.html
           test -s build/api/index.php
           test -s build/api/homepage.php
