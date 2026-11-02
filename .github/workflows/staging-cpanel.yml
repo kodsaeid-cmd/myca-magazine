@@ -41,6 +41,11 @@ jobs:
           test -s build/api/layout.php
           test -s build/.htaccess
           test -s build/cms-home.css
+          test -s build/vazir-local.css
+          test -s build/fonts/Vazir-Regular.woff2
+          test -s build/fonts/Vazir-Medium.woff2
+          test -s build/fonts/Vazir-Bold.woff2
+          test -s build/fonts/Vazir-Light.woff2
           test -s build/myca-logo.svg
 
           # The entire dandoonii.ir domain is an experiment: never index.
