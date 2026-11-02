@@ -11,7 +11,7 @@ function cms_editorial_more_pack(): array {
     if(!isset($a['slug'],$a['title'],$a['sections'],$a['sources'])||isset($ids[$a['slug']]))throw new RuntimeException('INVALID_EDITORIAL_MORE_PACK');
     if(!preg_match('~^[a-z0-9]+(?:-[a-z0-9]+)*$~',$a['slug']))throw new RuntimeException('INVALID_EDITORIAL_MORE_PACK');
     if(!array_key_exists($a['category_slug'],cms_categories()))throw new RuntimeException('INVALID_EDITORIAL_MORE_PACK');
-    if(!preg_match('~^/media-check/photo-[a-z-]+\\.jpg$~',(string)$a['cover_url']))throw new RuntimeException('INVALID_EDITORIAL_MORE_PACK');
+    if(!preg_match('~^/media/editorial-more/cover-[0-9]+-[a-z-]+\\.jpg$~',(string)$a['cover_url']))throw new RuntimeException('INVALID_EDITORIAL_MORE_PACK');
     if(count($a['sections'])<5||count($a['faq_json'])<2||count($a['sources'])<1)throw new RuntimeException('INCOMPLETE_EDITORIAL_MORE_PACK');
     $ids[$a['slug']]=true;
   }
