@@ -1,7 +1,12 @@
 Options -Indexes
-DirectoryIndex index.html
+DirectoryIndex index.php index.html
 RewriteEngine On
-# Live MYCA editorial homepage uses the published layout; falls back to old index.html before first publish.
+# The original prerendered Svelte homepage contains obsolete demo cards.
+# Never let Apache serve that file instead of the real CMS homepage.
+RewriteRule ^index\.html$ / [R=302,L]
+# Old static search used demo articles; use the MySQL-backed search instead.
+RewriteRule ^search/?$ api/stories.php [L,QSA]
+# Serve the CMS homepage; NEVER fall back to old showcase content.
 RewriteRule ^$ api/homepage.php [L,QSA]
 # Authenticated draft preview is never indexable.
 RewriteRule ^editorial-preview/?$ api/homepage.php?preview=1 [L,QSA]
