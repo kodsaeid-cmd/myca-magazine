@@ -1,6 +1,6 @@
 <?php
 declare(strict_types=1);
-require __DIR__.'/bootstrap.php';
+require_once __DIR__.'/bootstrap.php';
 try {
   $db=cms_db();
   $search=mb_substr(trim((string)($_GET['q']??'')),0,80);
