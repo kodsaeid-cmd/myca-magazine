@@ -37,7 +37,7 @@ function cms_layout_normalize(mixed $input): array {
     if (!in_array($mode,['manual','auto'],true)) throw new InvalidArgumentException('حالت چیدمان نامعتبر است.');
     $category=(string)($source['category_slug']??'');
     if($category!==''&&!array_key_exists($category,cms_categories())) throw new InvalidArgumentException('دسته‌بندی فیلتر نامعتبر است.');
-    $limit=max(1,min($id==='hero'?4:($id==='editors'?3:12),(int)($source['limit']??$base['limit'])));
+    $limit=max(1,min($id==='hero'?4:($id==='editors'?3:18),(int)($source['limit']??$base['limit'])));
     $sections[]=[
       'id'=>$id,
       'title'=>cms_clean_text($source['title']??$base['title'],85),
