@@ -4,9 +4,10 @@
     LayoutDashboard, FileText, Image as ImageIcon, Search, LogOut, Plus, Save, Globe,
     ArrowRight, Eye, Upload, RefreshCw, Bold, Italic, Heading2, Heading3,
     List, ListOrdered, Quote, Undo2, Redo2, Table2, Link2, CheckCircle2,
-    Clock3, ShieldCheck, ExternalLink, LockKeyhole, BookOpen, X, Menu, Users
+    Clock3, ShieldCheck, ExternalLink, LockKeyhole, BookOpen, X, Menu, Users, LayoutTemplate
   } from '@lucide/svelte';
   import '$lib/styles/admin.css';
+  import EditorialLayoutStudio from '$lib/components/EditorialLayoutStudio.svelte';
 
   const endpoint = '/api/index.php?route=';
   const empty = () => ({
@@ -313,6 +314,7 @@
           <button class:active={view === 'dashboard'} onclick={() => openView('dashboard')}><LayoutDashboard size={19}/> داشبورد</button>
           <button class:active={view === 'articles' || view === 'editor'} onclick={() => openView('articles')}><FileText size={19}/> مدیریت مقالات</button>
           <button class:active={view === 'media'} onclick={() => openView('media')}><ImageIcon size={19}/> کتابخانه رسانه</button>
+          {#if canPublish}<button class:active={view === 'layout'} onclick={() => openView('layout')}><LayoutTemplate size={19}/> چیدمان ویترین مجله</button>{/if}
           <button class:active={view === 'seo'} onclick={() => openView('seo')}><Search size={19}/> SEO Studio</button>
           {#if user.role === 'admin'}<button class:active={view === 'users'} onclick={() => openView('users')}><Users size={19}/> کاربران و دسترسی‌ها</button>{/if}
         </nav>
@@ -323,7 +325,7 @@
       {#if navOpen}<button class="cms-backdrop" aria-label="بستن منو" onclick={() => navOpen = false}></button>{/if}
       <div class="cms-workspace">
         <header class="cms-header">
-          <div class="cms-header-intro"><button class="cms-mobile-menu" aria-label="بازکردن منو" onclick={() => navOpen = !navOpen}><Menu size={22}/></button><div><span class="cms-overline">MYCA CONTENT OPERATIONS</span><h1>{view === 'dashboard' ? 'داشبورد تحریریه' : view === 'articles' ? 'مدیریت مقالات' : view === 'editor' ? (form.id ? 'ویرایش مقاله' : 'مقاله جدید') : view === 'seo' ? 'SEO Studio' : view === 'users' ? 'کاربران و دسترسی‌ها' : 'کتابخانه رسانه'}</h1></div></div>
+          <div class="cms-header-intro"><button class="cms-mobile-menu" aria-label="بازکردن منو" onclick={() => navOpen = !navOpen}><Menu size={22}/></button><div><span class="cms-overline">MYCA CONTENT OPERATIONS</span><h1>{view === 'dashboard' ? 'داشبورد تحریریه' : view === 'articles' ? 'مدیریت مقالات' : view === 'editor' ? (form.id ? 'ویرایش مقاله' : 'مقاله جدید') : view === 'layout' ? 'چیدمان ویترین مجله' : view === 'seo' ? 'SEO Studio' : view === 'users' ? 'کاربران و دسترسی‌ها' : 'کتابخانه رسانه'}</h1></div></div>
           <div class="cms-header-actions"><a href="/" target="_blank" rel="noopener noreferrer" class="cms-outline"><Eye size={17}/> نمایش مجله</a><button class="cms-primary" onclick={openNew}><Plus size={18}/> مقاله جدید</button></div>
         </header>
         <main class="cms-main">
@@ -410,6 +412,8 @@
                 </tr>{:else}<tr><td colspan="5" class="cms-empty">کاربری ثبت نشده است.</td></tr>{/each}
               </tbody></table></div>
             </div>
+          {:else if view === 'layout' && canPublish}
+            <EditorialLayoutStudio {request} {categories}/>
           {:else if view === 'seo'}
             <div class="cms-page-heading"><div><h2>SEO Studio</h2><p>سئوی متنی، تصاویر، ساختار انتشار و خزش موتور جست‌وجو</p></div><a class="cms-outline" href="/sitemap-cms.xml" target="_blank" rel="noopener noreferrer"><ExternalLink size={16}/> نقشه سایت پویا</a></div>
             <div class="cms-seo-grid"><div class="cms-panel"><Search size={29} color="#00a4d4"/><h3>سئوی متنی</h3><p>عنوان و توضیح متا، Canonical، Robots، FAQ Schema و کلیدواژه هر مقاله در Content Studio قابل ویرایش است.</p><button class="cms-link" onclick={() => openView('articles')}>ویرایش مقالات</button></div>
