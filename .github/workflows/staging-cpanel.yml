@@ -4,6 +4,7 @@ on:
   workflow_dispatch:
   push:
     branches:
+      - main
       - feature/myca-content-studio
     paths:
       - .github/workflows/staging-cpanel.yml
