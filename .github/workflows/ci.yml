@@ -7,13 +7,34 @@ on:
 
 jobs:
   quality:
-    name: SvelteKit check and build
+    name: SvelteKit, PHP and MySQL checks
     runs-on: ubuntu-latest
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ROOT_PASSWORD: test-root-password
+          MYSQL_DATABASE: myca_cms_test
+          MYSQL_USER: myca_test
+          MYSQL_PASSWORD: test-database-password
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping -h 127.0.0.1 -uroot -ptest-root-password"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=10
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
+      - name: Set up PHP for CMS verification
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          extensions: pdo_mysql, mbstring, dom, gd
+          coverage: none
       - name: Install dependencies
         run: npm install --no-audit --no-fund
       - name: Check Svelte
@@ -22,6 +43,23 @@ jobs:
         run: |
           find static/api -type f -name '*.php' -print0 | xargs -0 -n1 php -l
           php -l server/myca-config.example.php
+          php -l tests/cms-db-smoke.php
+      - name: Verify real MySQL backend and HTML sanitization
+        run: |
+          sudo mkdir -p /home/mycabl
+          sudo tee /home/mycabl/myca-magazine-config.php >/dev/null <<'CONFIG'
+          <?php
+          return [
+            'db_host' => '127.0.0.1',
+            'db_name' => 'myca_cms_test',
+            'db_user' => 'myca_test',
+            'db_password' => 'test-database-password',
+            'site_url' => 'https://mycablog.dandoonii.ir',
+            'session_secret' => 'ci-testing-hmac-secret-not-for-production',
+            'setup_token' => 'ci-testing-setup-token-not-for-production-long-enough'
+          ];
+          CONFIG
+          php tests/cms-db-smoke.php
       - name: Build
         run: npm run build
       - name: Verify static bundle includes real backend and CMS routes
