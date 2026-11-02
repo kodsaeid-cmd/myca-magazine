@@ -31,15 +31,10 @@ jobs:
           test -d build/_app
           test -s build/media-check/photo-care-main.jpg
           test -s build/myca-logo.svg
-          cat > build/.htaccess <<'HTACCESS'
-          DirectoryIndex index.html
-          RewriteEngine On
-          RewriteCond %{REQUEST_FILENAME} !-f
-          RewriteCond %{REQUEST_FILENAME} !-d
-          RewriteCond %{REQUEST_FILENAME}.html -f
-          RewriteRule ^(.+?)/?$ $1.html [L]
-          ErrorDocument 404 /404.html
-          HTACCESS
+          # Preserve versioned rewrite rules in static/.htaccess for live CMS stories and sitemap.
+          test -s build/.htaccess
+          test -s build/api/index.php
+          test -s build/api/story.php
           (
             cd build
             zip -qr ../myca-magazine-cpanel.zip .
