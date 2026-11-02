@@ -42,7 +42,7 @@ try {
     <div class="topline">دانش برای مراقبت بهتر، آرامش برای زندگی</div>
     <header class="sitehead"><a class="logo" href="/"><img src="/myca-logo.svg" alt="مایکا" width="96"> <strong>مجله مایکا</strong></a>
     <nav><a href="/">خانه</a><a href="/stories/">تازه‌ترین مطالب</a><a href="/category/elder-care/">مراقبت سالمند</a><a href="/category/health/">سلامت و زندگی</a></nav><a class="headphone" href="tel:41124">پشتیبانی ۴۱۱۲۴</a></header>
-    <main class="article-wrap"><div class="breadcrumb"><a href="/">مجله مایکا</a> / <a href="/stories/">مطالب تازه</a> / <?= $h(cms_categories()[$a['category_slug']]??'مراقبت') ?></div>
+    <main class="article-wrap"><div class="breadcrumb"><a href="/">مجله مایکا</a> / <a href="/stories/">مطالب تازه</a> / <a href="/category/<?= $h($a['category_slug']) ?>/"><?= $h(cms_categories()[$a['category_slug']]??'مراقبت') ?></a></div>
     <article><div class="article-head"><span class="eyebrow"><?= $h(cms_categories()[$a['category_slug']]??'راهنمای مایکا') ?></span>
     <h1><?= $h($a['title']) ?></h1><p class="excerpt"><?= $h($a['excerpt']) ?></p>
     <div class="byline"><?= $h($a['author']) ?> · <time datetime="<?= $h($a['published_at']) ?>"><?= $h(substr($a['published_at'],0,10)) ?></time></div>
