@@ -37,7 +37,8 @@ try {
   <?php if($image): ?><meta property="og:image" content="<?= $h($image) ?>"><?php endif; ?>
   <script type="application/ld+json"><?= json_encode($schema,JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES|JSON_HEX_TAG|JSON_HEX_AMP|JSON_HEX_APOS|JSON_HEX_QUOT) ?></script>
   <?php if($faqSchema): ?><script type="application/ld+json"><?= json_encode(['@context'=>'https://schema.org','@type'=>'FAQPage','mainEntity'=>$faqSchema],JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES|JSON_HEX_TAG|JSON_HEX_AMP|JSON_HEX_APOS|JSON_HEX_QUOT) ?></script><?php endif; ?>
-  <link rel="stylesheet" href="/cms-public.css"><link rel="icon" href="/favicon.svg">
+  <link rel="preload" href="/fonts/Vazir-Regular.woff2" as="font" type="font/woff2" crossorigin><link rel="stylesheet" href="/vazir-local.css?v=2">
+<link rel="stylesheet" href="/cms-public.css"><link rel="icon" href="/favicon.svg">
   </head><body>
     <div class="topline">دانش برای مراقبت بهتر، آرامش برای زندگی</div>
     <header class="sitehead"><a class="logo" href="/"><img src="/myca-logo.svg" alt="مایکا" width="96"> <strong>مجله مایکا</strong></a>
