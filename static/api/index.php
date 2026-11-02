@@ -3,6 +3,7 @@ declare(strict_types=1);
 require_once __DIR__.'/bootstrap.php';
 require_once __DIR__.'/layout.php';
 require_once __DIR__.'/editorial-import.php';
+require_once __DIR__.'/editorial-import-more.php';
 ini_set('display_errors','0');
 header('X-Content-Type-Options: nosniff');
 header('Referrer-Policy: same-origin');
@@ -43,6 +44,21 @@ try {
       throw $e;
     }
     cms_json(['ok'=>true,'result'=>$result]);
+  }
+
+  if ($route==='editorial-more-install'&&$method==='POST') {
+    cms_csrf();$u=cms_user('admin');$data=cms_input();
+    if(empty($data['confirm_install']))cms_error('تأیید نصب ده مقاله جدید لازم است.');
+    try {
+      $res=cms_editorial_more_install($db,(int)$u['id'],!empty($data['expand_layout']));
+    } catch(RuntimeException $e) {
+      if($e->getMessage()==='LAYOUT_HAS_UNPUBLISHED_DRAFT')
+        cms_error('چیدمان ذخیره‌نشده یا منتشرنشده دارید؛ ابتدا آن را در استودیوی ویترین منتشر کنید، سپس دوباره تلاش کنید.',409);
+      if(str_starts_with($e->getMessage(),'PACK_SLUG_CONFLICT:'))
+        cms_error('نامک مقاله‌ای از بسته با پیش‌نویس موجود تداخل دارد؛ ابتدا وضعیت آن مقاله را بررسی کنید.',409);
+      throw $e;
+    }
+    cms_json(['ok'=>true,'result'=>$res]);
   }
 
   // Editorial Layout Studio: drafts and public versions are separate.
