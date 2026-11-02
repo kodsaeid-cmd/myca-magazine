@@ -1,6 +1,6 @@
 <?php
 declare(strict_types=1);
-require __DIR__.'/bootstrap.php';
+require_once __DIR__.'/bootstrap.php';
 ini_set('display_errors','0');
 header('X-Content-Type-Options: nosniff');
 header('Referrer-Policy: same-origin');
