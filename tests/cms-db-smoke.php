@@ -143,7 +143,7 @@ $renderer=file_get_contents(__DIR__.'/../static/api/homepage.php');
 if(str_contains($renderer,'readfile(')||str_contains($renderer,"../index.html"))
   throw new RuntimeException('Old static homepage can still reappear during CMS failure');
 $fallback=file_get_contents(__DIR__.'/../src/routes/+page.svelte');
-if(str_contains($fallback,"$lib/content.js")||str_contains($fallback,'HeroNewsDesk'))
+if(str_contains($fallback,'$lib/content.js')||str_contains($fallback,'HeroNewsDesk'))
   throw new RuntimeException('Prerendered homepage still embeds old sample cards');
 ob_start();
 include __DIR__.'/../static/index.php';
