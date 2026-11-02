@@ -132,4 +132,25 @@ if(!str_contains($realHomepage,'choose-elderly-caregiver-at-home'))
   throw new RuntimeException('Real homepage did not switch to CMS articles');
 echo "PASS: ten researched articles imported, preserved, SEO metadata, editability and homepage publication.\\n";
 
+
+// The public root is always the CMS. Never ship or serve the sample showcase.
+$apache=file_get_contents(__DIR__.'/../static/.htaccess');
+if(!str_contains($apache,'DirectoryIndex index.php index.html')||
+   !str_contains($apache,'RewriteRule ^$ api/homepage.php')||
+   !str_contains($apache,'RewriteRule ^search/?$ api/stories.php'))
+  throw new RuntimeException('Apache is not enforcing the DB-backed homepage/search');
+$renderer=file_get_contents(__DIR__.'/../static/api/homepage.php');
+if(str_contains($renderer,'readfile(')||str_contains($renderer,"../index.html"))
+  throw new RuntimeException('Old static homepage can still reappear during CMS failure');
+$fallback=file_get_contents(__DIR__.'/../src/routes/+page.svelte');
+if(str_contains($fallback,"$lib/content.js")||str_contains($fallback,'HeroNewsDesk'))
+  throw new RuntimeException('Prerendered homepage still embeds old sample cards');
+ob_start();
+include __DIR__.'/../static/index.php';
+$rootHtml=ob_get_clean();
+if(!str_contains($rootHtml,'choose-elderly-caregiver-at-home')||
+   str_contains($rootHtml,'/article/elderly-care-at-home'))
+  throw new RuntimeException('PHP directory index is not serving CMS articles exclusively');
+echo "PASS: root PHP index, legacy showcase removal, fail-closed renderer, search routing.\\n";
+
 ob_end_flush();
