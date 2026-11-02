@@ -16,7 +16,7 @@ function cms_editorial_pack(): array {
   }
   return $pack;
 }
-function cms_editorial_html(array $article): string {
+function cms_editorial_html(array $article,array $titlesBySlug=[]): string {
   $h=static fn($v)=>htmlspecialchars((string)$v,ENT_QUOTES|ENT_SUBSTITUTE,'UTF-8');
   $html='<p>'.$h($article['intro']).'</p>';
   foreach($article['sections'] as $section) {
@@ -40,7 +40,7 @@ function cms_editorial_html(array $article): string {
   }
   $html.='<h2>مطالب مرتبط در مجله مایکا</h2><ul>';
   foreach($article['related']??[] as $slug) {
-    $html.='<li><a href="/stories/'.$h($slug).'/">مطالعه راهنمای مرتبط</a></li>';
+    $html.='<li><a href="/stories/'.$h($slug).'/">'.$h($titlesBySlug[$slug]??'مطالعه راهنمای مرتبط').'</a></li>';
   }
   $html.='</ul><h2>منابع و مطالعه بیشتر</h2><ul>';
   foreach($article['sources']??[] as $src) {
@@ -51,6 +51,7 @@ function cms_editorial_html(array $article): string {
 }
 function cms_editorial_pack_install(PDO $db,int $uid,bool $replaceLayout): array {
   $pack=cms_editorial_pack();
+  $titlesBySlug=[];foreach($pack as $item)$titlesBySlug[$item['slug']]=$item['title'];
   $db->beginTransaction();
   $created=[];$existing=[];$articleIds=[];
   try{
@@ -62,7 +63,7 @@ function cms_editorial_pack_install(PDO $db,int $uid,bool $replaceLayout): array
         $articleIds[]=(int)$old['id'];$existing[]=$article['slug'];
         continue; // Never overwrite a hand-edited or previously published article.
       }
-      $body=cms_editorial_html($article);
+      $body=cms_editorial_html($article,$titlesBySlug);
       if(trim(strip_tags($body))==='')throw new RuntimeException('EMPTY_EDITORIAL_ARTICLE');
       $q=$db->prepare("INSERT INTO cms_articles
         (slug,title,excerpt,body_html,status,category_slug,cover_url,cover_alt,
