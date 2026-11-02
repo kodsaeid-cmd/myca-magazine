@@ -9,6 +9,10 @@ RewriteRule ^editorial-preview/?$ api/homepage.php?preview=1 [L,QSA]
 RewriteRule ^stories/?$ api/stories.php [L,QSA]
 RewriteRule ^stories/([a-z0-9-]+)/?$ api/story.php?slug=$1 [L,QSA]
 RewriteRule ^sitemap-cms\.xml$ api/sitemap.php [L,QSA]
+# Dynamic article category pages use the same editorial database, not static demo content.
+RewriteRule ^category/([a-z0-9-]+)/?$ api/stories.php?category=$1 [L,QSA]
+# The old prerendered sitemap must never advertise the sample article URLs.
+RewriteRule ^sitemap\.xml$ api/sitemap.php [L,QSA]
 # Preserve existing SvelteKit prerendered HTML pages and directory slugs.
 RewriteCond %{REQUEST_FILENAME} !-f
 RewriteCond %{REQUEST_FILENAME} !-d
