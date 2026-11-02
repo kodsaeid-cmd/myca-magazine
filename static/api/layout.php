@@ -75,7 +75,7 @@ function cms_layout_articles(PDO $db,array $section,array &$seen): array {
     $q->execute($ids);
     $byId=[];
     foreach($q->fetchAll() as $a)$byId[(int)$a['id']]=$a;
-    foreach($ids as $id)if(isset($byId[$id])&&!isset($seen[$id])){$selected[]=$byId[$id];$seen[$id]=true;}
+    foreach($ids as $id)if(isset($byId[$id])){$selected[]=$byId[$id];$seen[$id]=true;}
   }
   $selected=array_slice($selected,0,$limit);
   if($section['mode']==='auto'&&count($selected)<$limit){
