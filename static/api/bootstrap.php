@@ -9,6 +9,8 @@ const MYCA_CMS_CATEGORIES = [
 
 function cms_config(): array {
   $path = dirname(__DIR__, 2) . '/myca-magazine-config.php';
+  // CLI tests run in a repository checkout, not at the production cPanel path.
+  if (PHP_SAPI === 'cli' && getenv('MYCA_CMS_TEST_CONFIG')) $path = (string)getenv('MYCA_CMS_TEST_CONFIG');
   if (!is_file($path)) {
     throw new RuntimeException('CMS_NOT_CONFIGURED');
   }
