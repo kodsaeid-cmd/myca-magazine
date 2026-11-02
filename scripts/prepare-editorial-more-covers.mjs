@@ -13,7 +13,7 @@ const shots=[
  ['13-pressure-prevention','home-safety'],
  ['14-elderly-sleep','active-aging'],
  ['15-social-connection','care-main'],
- ['16-physical-activity','walker-care'],
+ ['16-physical-activity','active-aging'],
  ['17-dementia-activities','caregiver-conversation'],
  ['18-oral-health','senior-nutrition'],
  ['19-child-medication-safety','child-home-safety'],
