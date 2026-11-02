@@ -195,7 +195,7 @@
                     </select>
                   </label>
                   <label class="els-field">تعداد کارت
-                    <input type="number" min="1" max={section.id==='hero'?4:section.id==='editors'?3:12}
+                    <input type="number" min="1" max={section.id==='hero'?4:section.id==='editors'?3:18}
                       value={section.limit} onchange={(e)=>change(index,'limit',Number(e.currentTarget.value))}/>
                   </label>
                 </div>
