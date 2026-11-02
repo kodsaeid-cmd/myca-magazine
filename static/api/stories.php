@@ -27,7 +27,8 @@ try {
   <meta name="description" content="<?= $h($description) ?>">
   <meta name="robots" content="<?= $noindex?'noindex,follow':'index,follow' ?>">
   <?php if(!$isSearch): ?><link rel="canonical" href="<?= $h($canonical) ?>"><?php endif; ?>
-  <link rel="stylesheet" href="/cms-public.css"><link rel="icon" href="/favicon.svg"></head>
+  <link rel="preload" href="/fonts/Vazir-Regular.woff2" as="font" type="font/woff2" crossorigin><link rel="stylesheet" href="/vazir-local.css?v=2">
+<link rel="stylesheet" href="/cms-public.css"><link rel="icon" href="/favicon.svg"></head>
   <body><div class="topline">دانش برای مراقبت بهتر، آرامش برای زندگی</div>
   <header class="sitehead"><a class="logo" href="/"><img src="/myca-logo.svg" alt="مایکا" width="96"> <strong>مجله مایکا</strong></a>
   <nav><a href="/">خانه</a><a href="/category/elder-care/">مراقبت سالمند</a><a href="/category/health/">سلامت و زندگی</a></nav><a class="headphone" href="tel:41124">۴۱۱۲۴</a></header>
