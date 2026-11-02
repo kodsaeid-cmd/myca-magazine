@@ -1,0 +1,13 @@
+Options -Indexes
+DirectoryIndex index.html
+RewriteEngine On
+# Server-rendered, indexable articles from the REAL CMS database.
+RewriteRule ^stories/?$ api/stories.php [L,QSA]
+RewriteRule ^stories/([a-z0-9-]+)/?$ api/story.php?slug=$1 [L,QSA]
+RewriteRule ^sitemap-cms\.xml$ api/sitemap.php [L,QSA]
+# Preserve existing SvelteKit prerendered HTML pages and directory slugs.
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteCond %{REQUEST_FILENAME}.html -f
+RewriteRule ^(.+?)/?$ $1.html [L]
+ErrorDocument 404 /404.html
