@@ -59,7 +59,7 @@ jobs:
             'setup_token' => 'ci-testing-setup-token-not-for-production-long-enough'
           ];
           CONFIG
-          php tests/cms-db-smoke.php
+          MYCA_CMS_TEST_CONFIG=/home/mycabl/myca-magazine-config.php php tests/cms-db-smoke.php
       - name: Build
         run: npm run build
       - name: Verify static bundle includes real backend and CMS routes
