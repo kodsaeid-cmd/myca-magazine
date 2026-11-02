@@ -41,7 +41,8 @@ if($preview) header('X-Robots-Tag:noindex, nofollow');
 <meta name="robots" content="<?= $preview?'noindex,nofollow':'index,follow' ?>">
 <link rel="canonical" href="<?= $h($origin.'/') ?>">
 <meta property="og:type" content="website"><meta property="og:title" content="مجله مایکا | MYCA">
-<link rel="icon" href="/favicon.svg"><link rel="stylesheet" href="/cms-public.css"><link rel="stylesheet" href="/cms-home.css">
+<link rel="icon" href="/favicon.svg"><link rel="preload" href="/fonts/Vazir-Regular.woff2" as="font" type="font/woff2" crossorigin><link rel="stylesheet" href="/vazir-local.css?v=2">
+<link rel="stylesheet" href="/cms-public.css"><link rel="stylesheet" href="/cms-home.css">
 </head><body class="editorial-home">
 <a class="editorial-skip" href="#main-content">رفتن به محتوا</a>
 <div class="topline">دانش برای مراقبت بهتر، آرامش برای زندگی</div>
