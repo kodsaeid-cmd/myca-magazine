@@ -1,9 +1,9 @@
-name: MYCA Magazine | ParsPack FTPS
+name: MYCA CMS | Experimental ParsPack FTPS
 
 # Safety: manual-only until the first dry run and actual release are verified.
 # FTP account is scoped to /home/mycabl/public_html.
 on:
-  # A workflow-file update runs a safe, read-only FTPS dry run.
+  # Workflow changes run a safe FTPS dry-run; publication always requires an explicit manual action.
   # Publication is NEVER enabled on a push event.
   push:
     branches: [main]
@@ -12,7 +12,7 @@ on:
   workflow_dispatch:
     inputs:
       publish:
-        description: 'Publish to live site? Leave unchecked for safe dry-run'
+        description: 'Publish to TEMP mycablog.dandoonii.ir? Leave unchecked for dry-run'
         required: true
         type: boolean
         default: false
@@ -44,25 +44,35 @@ jobs:
       - name: Check SvelteKit
         run: npm run check
 
-      - name: Build complete static magazine
-        run: npm run build
+      - name: Validate PHP API and build complete CMS
+        run: |
+          find static/api -name '*.php' -type f -print0 | xargs -0 -n1 php -l
+          npm run build
 
-      - name: Prepare LiteSpeed / Apache routes
+      - name: Preserve CMS routes and block search indexing on the experimental host
         shell: bash
         run: |
           set -euo pipefail
           test -s build/index.html
+          test -s build/admin/index.html
+          test -s build/api/index.php
+          test -s build/api/homepage.php
+          test -s build/api/layout.php
+          test -s build/.htaccess
           test -s build/media-check/photo-care-main.jpg
           test -s build/myca-logo.svg
           test -d build/_app
-          cat > build/.htaccess <<'HTACCESS'
-          DirectoryIndex index.html
-          RewriteEngine On
-          RewriteCond %{REQUEST_FILENAME} !-f
-          RewriteCond %{REQUEST_FILENAME} !-d
-          RewriteCond %{REQUEST_FILENAME}.html -f
-          RewriteRule ^(.+?)/?$ $1.html [L]
-          ErrorDocument 404 /404.html
+          grep -F 'api/homepage.php' build/.htaccess
+          grep -F 'api/stories.php' build/.htaccess
+          # Never overwrite build/.htaccess with a static-only rewrite:
+          # that would break the new CMS homepage, dynamic articles and editor.
+          printf 'User-agent: *\\nDisallow: /\\n' > build/robots.txt
+          cat >> build/.htaccess <<'HTACCESS'
+
+          # All dandoonii.ir domains are temporary experiments.
+          <IfModule mod_headers.c>
+          Header always set X-Robots-Tag "noindex, nofollow"
+          </IfModule>
           HTACCESS
 
       - name: Require configured FTP secret
@@ -85,7 +95,7 @@ jobs:
           port: 21
           security: strict
           local-dir: ./build/
-          # The cPanel FTP account's home is ALREADY public_html.
+          # TEMP EXPERIMENT ONLY. The cPanel FTP account's home is ALREADY public_html.
           # Adding another public_html/ would upload into the wrong folder.
           server-dir: ./
           dry-run: ${{ github.event_name != 'workflow_dispatch' || !inputs.publish }}
@@ -98,12 +108,13 @@ jobs:
             **/node_modules/**
             **/cgi-bin/**
             **/.well-known/**
+            **/media/uploads/**
 
       - name: Result
         shell: bash
         run: |
           if [ "${{ github.event_name }}" = 'workflow_dispatch' ] && [ "${{ inputs.publish }}" = 'true' ]; then
-            echo 'FTPS published. Verify https://mycablog.dandoonii.ir/ and article/photo links.'
+            echo 'TEMP CMS uploaded to mycablog.dandoonii.ir. Verify /admin/, /api/, /stories/ and homepage. Never deploy this noindex build to blog.mycaapp.ir.'
           else
             echo 'FTPS preview complete. Server files were NOT changed.'
           fi
