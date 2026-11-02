@@ -153,4 +153,28 @@ if(!str_contains($rootHtml,'choose-elderly-caregiver-at-home')||
   throw new RuntimeException('PHP directory index is not serving CMS articles exclusively');
 echo "PASS: root PHP index, legacy showcase removal, fail-closed renderer, search routing.\\n";
 
+
+// Second set: 10 more full articles; preserves original content and expands the
+// live newest-stories section without replacing editor-curated hero positions.
+require_once __DIR__.'/../static/api/editorial-import-more.php';
+$more=cms_editorial_more_pack();
+if(count($more)!==10)throw new RuntimeException('Missing additional 10 articles');
+foreach($more as $item){
+  if(count($item['sections'])<5 || count($item['faq_json'])<2 || count($item['sources'])<1)
+    throw new RuntimeException('Additional article lacks complete editorial structure');
+}
+$second=cms_editorial_more_install($db,$id,true);
+if($second['created']!==10||!$second['layout_published'])throw new RuntimeException('Import of additional 10 articles failed');
+$third=cms_editorial_more_install($db,$id,false);
+if($third['created']!==0||$third['already_present']!==10)throw new RuntimeException('Additional import not idempotent');
+$total=$db->query("SELECT COUNT(*) FROM cms_articles WHERE status='published'")->fetchColumn();
+if((int)$total<22)throw new RuntimeException('Additional published article count too low');
+$now=cms_layout_resolve($db,cms_layout_public($db));
+if((int)$now['sections'][3]['limit']!==13||count($now['sections'][3]['articles'])<10)
+  throw new RuntimeException('Extended showcase was not persisted and resolved');
+if(!is_file(__DIR__.'/../static/vazir-local.css')||
+   !str_contains(file_get_contents(__DIR__.'/../static/cms-public.css'),'vazir-local.css'))
+  throw new RuntimeException('Stable Vazir font CSS missing');
+echo "PASS: 20 editable CMS articles, safe additive import, expanded real homepage and Vazir styles.\\n";
+
 ob_end_flush();
