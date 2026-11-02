@@ -4,7 +4,7 @@
     LayoutDashboard, FileText, Image as ImageIcon, Search, LogOut, Plus, Save, Globe,
     ArrowRight, Eye, Upload, RefreshCw, Bold, Italic, Heading2, Heading3,
     List, ListOrdered, Quote, Undo2, Redo2, Table2, Link2, CheckCircle2,
-    Clock3, ShieldCheck, ExternalLink, LockKeyhole, BookOpen, X, Menu
+    Clock3, ShieldCheck, ExternalLink, LockKeyhole, BookOpen, X, Menu, Users
   } from '@lucide/svelte';
   import '$lib/styles/admin.css';
 
@@ -19,7 +19,8 @@
   let initialized = false, loading = true, user = null, csrf = '', serviceError = '';
   let authMode = 'login', authEmail = '', authPassword = '', authName = '', setupToken = '';
   let view = 'dashboard', navOpen = false, busy = false, notice = '', error = '';
-  let articles = [], media = [], counts = {}, categories = {}, revisions = [];
+  let articles = [], media = [], counts = {}, categories = {}, revisions = [], users = [];
+  let newUserName = '', newUserEmail = '', newUserPassword = '', newUserRole = 'author';
   let search = '', statusFilter = '', form = empty(), faqText = '';
   let editorHost, uploadInput, editor, editorLoading = false;
   let selectedImageAlt = '';
@@ -98,6 +99,33 @@
     try { media = (await request('media')).media; }
     catch (e) { error = e.message; }
   }
+  async function loadUsers() {
+    try { users = (await request('users')).users; }
+    catch (e) { error = e.message; }
+  }
+  async function createUser() {
+    clearMessages();busy = true;
+    try {
+      await request('user-create', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ display_name: newUserName, email: newUserEmail, password: newUserPassword, role: newUserRole })
+      });
+      newUserName = ''; newUserEmail = ''; newUserPassword = ''; newUserRole = 'author';
+      notice = 'کاربر جدید در پایگاه داده ایجاد شد.';
+      await loadUsers();
+    } catch (e) { error = e.message; }
+    finally { busy = false; }
+  }
+  async function updateUser(id, role, active) {
+    clearMessages();busy=true;
+    try {
+      await request('user-update', { method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id, role, active }) });
+      notice='دسترسی کاربر به‌روزرسانی شد.';
+      await loadUsers();
+    } catch(e) { error=e.message; await loadUsers(); }
+    finally { busy=false; }
+  }
   function teardownEditor() {
     if (editor) { editor.destroy(); editor = null; }
   }
@@ -107,6 +135,7 @@
     view = next; navOpen = false;
     if (next === 'articles') await loadArticles();
     if (next === 'media') await loadMedia();
+    if (next === 'users' && user?.role === 'admin') await loadUsers();
     if (next === 'dashboard') await loadDashboard();
   }
   async function openNew() {
@@ -282,6 +311,7 @@
           <button class:active={view === 'articles' || view === 'editor'} onclick={() => openView('articles')}><FileText size={19}/> مدیریت مقالات</button>
           <button class:active={view === 'media'} onclick={() => openView('media')}><ImageIcon size={19}/> کتابخانه رسانه</button>
           <button class:active={view === 'seo'} onclick={() => openView('seo')}><Search size={19}/> SEO Studio</button>
+          {#if user.role === 'admin'}<button class:active={view === 'users'} onclick={() => openView('users')}><Users size={19}/> کاربران و دسترسی‌ها</button>{/if}
         </nav>
         <div class="cms-side-label">حساب کاربری</div>
         <div class="cms-sidebar-user"><span class="cms-avatar">{user.display_name.slice(0, 1)}</span><div><strong>{user.display_name}</strong><small>{user.role === 'admin' ? 'مدیر کل' : user.role === 'editor' ? 'سردبیر' : 'نویسنده'}</small></div></div>
@@ -290,7 +320,7 @@
       {#if navOpen}<button class="cms-backdrop" aria-label="بستن منو" onclick={() => navOpen = false}></button>{/if}
       <div class="cms-workspace">
         <header class="cms-header">
-          <div class="cms-header-intro"><button class="cms-mobile-menu" aria-label="بازکردن منو" onclick={() => navOpen = !navOpen}><Menu size={22}/></button><div><span class="cms-overline">MYCA CONTENT OPERATIONS</span><h1>{view === 'dashboard' ? 'داشبورد تحریریه' : view === 'articles' ? 'مدیریت مقالات' : view === 'editor' ? (form.id ? 'ویرایش مقاله' : 'مقاله جدید') : view === 'seo' ? 'SEO Studio' : 'کتابخانه رسانه'}</h1></div></div>
+          <div class="cms-header-intro"><button class="cms-mobile-menu" aria-label="بازکردن منو" onclick={() => navOpen = !navOpen}><Menu size={22}/></button><div><span class="cms-overline">MYCA CONTENT OPERATIONS</span><h1>{view === 'dashboard' ? 'داشبورد تحریریه' : view === 'articles' ? 'مدیریت مقالات' : view === 'editor' ? (form.id ? 'ویرایش مقاله' : 'مقاله جدید') : view === 'seo' ? 'SEO Studio' : view === 'users' ? 'کاربران و دسترسی‌ها' : 'کتابخانه رسانه'}</h1></div></div>
           <div class="cms-header-actions"><a href="/" target="_blank" rel="noopener noreferrer" class="cms-outline"><Eye size={17}/> نمایش مجله</a><button class="cms-primary" onclick={openNew}><Plus size={18}/> مقاله جدید</button></div>
         </header>
         <main class="cms-main">
@@ -355,6 +385,28 @@
           {:else if view === 'media'}
             <div class="cms-page-heading"><div><h2>کتابخانه رسانه مایکا</h2><p>فایل‌های واقعی روی هاست ایران؛ نه لینک‌های موقت CDN</p></div><button class="cms-primary" onclick={() => uploadInput?.click()}><Upload size={17}/> آپلود تصویر</button></div>
             <div class="cms-panel"><label class="cms-field" style="max-width:450px">متن جایگزین تصویر هنگام آپلود<input bind:value={selectedImageAlt} placeholder="مثلاً مراقب در کنار سالمند در منزل" /></label><div class="cms-media-grid">{#each media as item}<div class="cms-media-card"><img src={item.path} alt={item.alt}/><div><strong>{item.alt || 'تصویر بدون ALT'}</strong><small>{Math.round(item.bytes / 1024)} KB</small><button class="cms-link" onclick={() => { navigator.clipboard?.writeText(location.origin + item.path); notice = 'لینک تصویر کپی شد.'; }}>کپی آدرس</button></div></div>{:else}<div class="cms-empty">هنوز رسانه‌ای در پایگاه داده ثبت نشده است.</div>{/each}</div></div>
+          {:else if view === 'users' && user.role === 'admin'}
+            <div class="cms-page-heading"><div><h2>مدیریت کاربران تحریریه</h2><p>نویسنده، سردبیر و مدیر کل با کنترل دسترسی واقعی روی سرور</p></div><button class="cms-outline" onclick={loadUsers}><RefreshCw size={17}/> به‌روزرسانی</button></div>
+            <div class="cms-panel"><h3>ایجاد حساب کاربری</h3>
+              <form onsubmit={(e) => {e.preventDefault();createUser();}} class="cms-user-create">
+                <label class="cms-field">نام نمایشی<input bind:value={newUserName} required maxlength="120" placeholder="نام نویسنده"/></label>
+                <label class="cms-field">ایمیل<input bind:value={newUserEmail} dir="ltr" type="email" required placeholder="editor@example.com"/></label>
+                <label class="cms-field">رمز موقت امن<input bind:value={newUserPassword} type="password" required minlength="14" autocomplete="new-password" placeholder="حداقل ۱۴ کاراکتر"/></label>
+                <label class="cms-field">نقش<select bind:value={newUserRole}><option value="author">نویسنده</option><option value="editor">سردبیر</option><option value="admin">مدیر کل</option></select></label>
+                <button class="cms-primary" type="submit" disabled={busy}><Plus size={17}/> ایجاد کاربر</button>
+              </form>
+              <p class="cms-help">رمز عبور فقط به‌صورت هش امن در دیتابیس ذخیره می‌شود. رمز اولیه را خارج از پنل و از یک مسیر امن به کاربر بده.</p>
+            </div>
+            <div class="cms-panel"><h3>حساب‌های موجود</h3>
+              <div class="cms-table-scroll"><table class="cms-table"><thead><tr><th>کاربر</th><th>ایمیل</th><th>نقش</th><th>وضعیت</th><th>عملیات</th></tr></thead><tbody>
+                {#each users as item (item.id)}<tr>
+                  <td><strong>{item.display_name}</strong></td><td dir="ltr">{item.email}</td>
+                  <td><select class="cms-table-select" value={item.role} disabled={busy || Number(item.id) === Number(user.id)} onchange={(e) => updateUser(item.id,e.currentTarget.value,Number(item.active) === 1)}><option value="author">نویسنده</option><option value="editor">سردبیر</option><option value="admin">مدیر کل</option></select></td>
+                  <td><span class={'cms-status ' + (Number(item.active) === 1 ? 'status-published' : 'status-archived')}>{Number(item.active) === 1 ? 'فعال' : 'غیرفعال'}</span></td>
+                  <td><button class="cms-link" disabled={busy || Number(item.id) === Number(user.id)} onclick={() => updateUser(item.id,item.role,Number(item.active) !== 1)}>{Number(item.active) === 1 ? 'غیرفعال‌سازی' : 'فعال‌سازی'}</button></td>
+                </tr>{:else}<tr><td colspan="5" class="cms-empty">کاربری ثبت نشده است.</td></tr>{/each}
+              </tbody></table></div>
+            </div>
           {:else if view === 'seo'}
             <div class="cms-page-heading"><div><h2>SEO Studio</h2><p>سئوی متنی، تصاویر، ساختار انتشار و خزش موتور جست‌وجو</p></div><a class="cms-outline" href="/sitemap-cms.xml" target="_blank" rel="noopener noreferrer"><ExternalLink size={16}/> نقشه سایت پویا</a></div>
             <div class="cms-seo-grid"><div class="cms-panel"><Search size={29} color="#00a4d4"/><h3>سئوی متنی</h3><p>عنوان و توضیح متا، Canonical، Robots، FAQ Schema و کلیدواژه هر مقاله در Content Studio قابل ویرایش است.</p><button class="cms-link" onclick={() => openView('articles')}>ویرایش مقالات</button></div>
