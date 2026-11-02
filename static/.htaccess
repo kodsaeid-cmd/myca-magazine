@@ -18,6 +18,10 @@ RewriteRule ^sitemap-cms\.xml$ api/sitemap.php [L,QSA]
 RewriteRule ^category/([a-z0-9-]+)/?$ api/stories.php?category=$1 [L,QSA]
 # The old prerendered sitemap must never advertise the sample article URLs.
 RewriteRule ^sitemap\.xml$ api/sitemap.php [L,QSA]
+# Block direct requests for old generated sample HTML, too.
+RewriteRule ^article/[a-z0-9-]+/index\.html$ /stories/ [R=302,L]
+RewriteRule ^category/([a-z0-9-]+)/index\.html$ /category/$1/ [R=302,L]
+RewriteRule ^search/index\.html$ /stories/ [R=302,L]
 # Retire legacy prerendered demo articles from public navigation.
 # Temporary redirects until the final production URL migration.
 RewriteRule ^article/elderly-care-at-home/?$ /stories/choose-elderly-caregiver-at-home/ [R=302,L]
