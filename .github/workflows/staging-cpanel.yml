@@ -1,21 +1,21 @@
-name: Package MYCA CMS for isolated ParsPack staging
+name: MYCA CMS | experimental mycablog.dandoonii.ir
 
+# Everything under dandoonii.ir is temporary. Do not deploy this
+# noindex package to the eventual blog.mycaapp.ir production domain.
 on:
   workflow_dispatch:
   push:
-    branches:
-      - main
-      - feature/myca-content-studio
+    branches: [main]
 
 permissions:
   contents: write
 
 jobs:
-  staging:
+  package-experimental:
+    name: Validate and package CMS for experimental magazine
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout feature branch
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
@@ -23,50 +23,54 @@ jobs:
         run: npm install --no-audit --no-fund
       - name: Validate SvelteKit
         run: npm run check
-      - name: Lint PHP backend
+      - name: Lint every PHP API and renderer
         run: |
           find static/api -name '*.php' -type f -print0 | xargs -0 -n1 php -l
-      - name: Build SvelteKit admin and PHP backend
+      - name: Build website and full admin CMS
         run: npm run build
-      - name: Create isolated noindex package
+      - name: Mark experimental host noindex and make ZIP
         shell: bash
         run: |
           set -euo pipefail
+          test -s build/index.html
           test -s build/admin/index.html
           test -s build/api/index.php
-          test -s build/api/story.php
+          test -s build/api/homepage.php
+          test -s build/api/layout.php
           test -s build/.htaccess
+          test -s build/cms-home.css
+          test -s build/myca-logo.svg
+
+          # The entire dandoonii.ir domain is an experiment: never index.
           printf 'User-agent: *\nDisallow: /\n' > build/robots.txt
           cat >> build/.htaccess <<'HTACCESS'
 
-          # Do not index the staging instance.
+          # Temporary MYCA experiment: do not index its pages.
           <IfModule mod_headers.c>
           Header always set X-Robots-Tag "noindex, nofollow"
           </IfModule>
           HTACCESS
-          (
-            cd build
-            zip -qr ../myca-cms-staging.zip .
-          )
-          unzip -l myca-cms-staging.zip | grep -F 'admin/index.html'
-          unzip -l myca-cms-staging.zip | grep -F 'api/index.php'
-          unzip -l myca-cms-staging.zip | grep -F '.htaccess'
-      - name: Upload staging bundle
+
+          (cd build && zip -qr ../myca-cms-experimental.zip .)
+          unzip -l myca-cms-experimental.zip | grep -F 'admin/index.html'
+          unzip -l myca-cms-experimental.zip | grep -F 'api/homepage.php'
+          unzip -l myca-cms-experimental.zip | grep -F '.htaccess'
+      - name: Save tested package
         uses: actions/upload-artifact@v4
         with:
-          name: myca-cms-staging
-          path: myca-cms-staging.zip
+          name: myca-cms-experimental
+          path: myca-cms-experimental.zip
           if-no-files-found: error
           retention-days: 30
-      - name: Publish staging prerelease
+      - name: Publish easy-to-download experimental release
+        shell: bash
         env:
           GH_TOKEN: ${{ github.token }}
-        shell: bash
         run: |
           set -euo pipefail
-          TAG="staging-cms-$(git rev-parse --short HEAD)"
-          gh release create "$TAG" myca-cms-staging.zip \
-            --title "MYCA Content Studio - STAGING ONLY" \
-            --notes "NOT FOR PRODUCTION. Extract only into isolated staging.mycablog.dandoonii.ir document root. Backend requires private MySQL configuration outside webroot. Do not place into public_html." \
+          TAG="experimental-cms-$(git rev-parse --short HEAD)"
+          gh release create "$TAG" myca-cms-experimental.zip \
+            --title "MYCA CMS - EXPERIMENTAL mycablog.dandoonii.ir" \
+            --notes "EXPERIMENTAL NOINDEX ONLY. Install into the existing mycablog.dandoonii.ir document root (/home/mycabl/public_html) after backup and DB migration. Reuses the configured private CMS database. Never upload this noindex bundle to blog.mycaapp.ir." \
             --prerelease --latest=false
-          echo "Ready: https://github.com/${GITHUB_REPOSITORY}/releases/download/${TAG}/myca-cms-staging.zip"
+          echo "https://github.com/${GITHUB_REPOSITORY}/releases/download/${TAG}/myca-cms-experimental.zip"
