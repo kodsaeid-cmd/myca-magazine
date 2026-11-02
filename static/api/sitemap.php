@@ -1,6 +1,6 @@
 <?php
 declare(strict_types=1);
-require __DIR__.'/bootstrap.php';
+require_once __DIR__.'/bootstrap.php';
 header('Content-Type: application/xml; charset=utf-8');
 try {
   $q=cms_db()->query("SELECT slug,updated_at FROM cms_articles WHERE status='published' AND published_at<=UTC_TIMESTAMP() AND robots='index,follow' ORDER BY updated_at DESC LIMIT 5000");
