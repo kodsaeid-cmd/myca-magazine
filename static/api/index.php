@@ -1,6 +1,7 @@
 <?php
 declare(strict_types=1);
 require_once __DIR__.'/bootstrap.php';
+require_once __DIR__.'/layout.php';
 ini_set('display_errors','0');
 header('X-Content-Type-Options: nosniff');
 header('Referrer-Policy: same-origin');
@@ -16,6 +17,102 @@ try {
     $q=$db->query("SELECT slug,title,excerpt,category_slug,cover_url,cover_alt,published_at FROM cms_articles WHERE status='published' AND published_at <= UTC_TIMESTAMP() ORDER BY published_at DESC LIMIT 24");
     cms_json(['ok'=>true,'articles'=>$q->fetchAll()]);
   }
+
+  // Editorial Layout Studio: drafts and public versions are separate.
+  if ($route==='layout-public'&&$method==='GET') {
+    $published=cms_layout_public($db);
+    cms_json(['ok'=>true,'layout'=>$published?cms_layout_resolve($db,$published):null]);
+  }
+  if ($route==='layout'&&$method==='GET') {
+    cms_user('editor');
+    $row=cms_layout_record($db);
+    $draft=$row?cms_layout_parse($row['draft_json']):null;
+    $q=$db->query("SELECT id,title,status,category_slug,cover_url FROM cms_articles WHERE status='published' AND published_at<=UTC_TIMESTAMP() ORDER BY published_at DESC LIMIT 500");
+    cms_json(['ok'=>true,'layout'=>$draft??cms_layout_default(),
+      'version'=>(int)($row['version']??0),'published_version'=>(int)($row['published_version']??0),
+      'published_at'=>$row['published_at']??null,'articles'=>$q->fetchAll()]);
+  }
+  if ($route==='layout-history'&&$method==='GET') {
+    cms_user('editor');
+    $q=$db->query('SELECT h.id,h.version,h.created_at,u.display_name AS publisher FROM cms_editorial_layout_history h JOIN cms_users u ON h.published_by=u.id ORDER BY h.id DESC LIMIT 20');
+    cms_json(['ok'=>true,'history'=>$q->fetchAll()]);
+  }
+  if ($route==='layout-save'&&$method==='POST') {
+    cms_csrf();$u=cms_user('editor');$data=cms_input();
+    try{$layout=cms_layout_normalize($data['layout']??null);}
+    catch(InvalidArgumentException $e){cms_error($e->getMessage());}
+    $expected=(int)($data['version']??-1);
+    $db->beginTransaction();
+    try {
+      $row=cms_layout_record($db,true);
+      $version=(int)($row['version']??0);
+      if($expected!==$version){$db->rollBack();cms_error('چیدمان توسط کاربر دیگری تغییر کرده است. صفحه را دوباره باز کنید.',409);}
+      $newVersion=$version+1;
+      if($row){
+        $q=$db->prepare('UPDATE cms_editorial_layout SET draft_json=?,version=?,updated_by=? WHERE id=1');
+        $q->execute([cms_layout_json($layout),$newVersion,(int)$u['id']]);
+      } else {
+        $q=$db->prepare('INSERT INTO cms_editorial_layout(id,draft_json,version,updated_by) VALUES(1,?,?,?)');
+        $q->execute([cms_layout_json($layout),$newVersion,(int)$u['id']]);
+      }
+      $db->commit();
+    } catch(Throwable $e){if($db->inTransaction())$db->rollBack();throw $e;}
+    cms_log((int)$u['id'],'save','layout',1);
+    cms_json(['ok'=>true,'version'=>$newVersion]);
+  }
+  if ($route==='layout-publish'&&$method==='POST') {
+    cms_csrf();$u=cms_user('editor');$data=cms_input();
+    $expected=(int)($data['version']??-1);
+    $db->beginTransaction();
+    try {
+      $row=cms_layout_record($db,true);
+      if(!$row){$db->rollBack();cms_error('ابتدا پیش‌نویس چیدمان را ذخیره کنید.');}
+      if($expected!==(int)$row['version']){$db->rollBack();cms_error('چیدمان تغییر کرده؛ پیش از انتشار آن را بازخوانی کنید.',409);}
+      $layout=cms_layout_parse($row['draft_json']);
+      if(!$layout){$db->rollBack();cms_error('پیش‌نویس چیدمان معتبر نیست.');}
+      // Never publish a pinned card pointing to a draft, archive or missing article.
+      $all=[];
+      foreach($layout['sections'] as $sec)if($sec['enabled']&&in_array($sec['id'],['hero','editors','latest'],true)){
+        foreach($sec['article_ids'] as $id)$all[$id]=true;
+      }
+      if($all){
+        $ids=array_keys($all);
+        $q=$db->prepare("SELECT id FROM cms_articles WHERE status='published' AND published_at<=UTC_TIMESTAMP() AND id IN (".implode(',',array_fill(0,count($ids),'?')).")");
+        $q->execute($ids);
+        if(count($q->fetchAll())!==count($ids)){$db->rollBack();cms_error('یکی از مقالات انتخاب‌شده منتشر نشده یا دیگر در دسترس نیست.',409);}
+      }
+      $newPublished=(int)$row['published_version']+1;
+      $serialized=cms_layout_json($layout);
+      $q=$db->prepare('UPDATE cms_editorial_layout SET published_json=?,published_version=?,published_at=UTC_TIMESTAMP(),updated_by=? WHERE id=1');
+      $q->execute([$serialized,$newPublished,(int)$u['id']]);
+      $q=$db->prepare('INSERT INTO cms_editorial_layout_history(version,layout_json,published_by) VALUES(?,?,?)');
+      $q->execute([$newPublished,$serialized,(int)$u['id']]);
+      $db->commit();
+    } catch(Throwable $e){if($db->inTransaction())$db->rollBack();throw $e;}
+    cms_log((int)$u['id'],'publish','layout',1);
+    cms_json(['ok'=>true,'published_version'=>$newPublished]);
+  }
+  if ($route==='layout-restore'&&$method==='POST') {
+    cms_csrf();$u=cms_user('editor');$data=cms_input();
+    $historyId=(int)($data['history_id']??0);$expected=(int)($data['version']??-1);
+    $q=$db->prepare('SELECT layout_json FROM cms_editorial_layout_history WHERE id=?');
+    $q->execute([$historyId]);$saved=$q->fetchColumn();
+    if(!$saved)cms_error('نسخه منتشرشده پیدا نشد.',404);
+    $layout=cms_layout_parse((string)$saved);
+    if(!$layout)cms_error('ساختار نسخه قبلی قابل بازیابی نیست.');
+    $db->beginTransaction();
+    try {
+      $row=cms_layout_record($db,true);
+      if(!$row||$expected!==(int)$row['version']){$db->rollBack();cms_error('چیدمان تغییر کرده است. ابتدا تازه‌سازی کنید.',409);}
+      $version=(int)$row['version']+1;
+      $q=$db->prepare('UPDATE cms_editorial_layout SET draft_json=?,version=?,updated_by=? WHERE id=1');
+      $q->execute([cms_layout_json($layout),$version,(int)$u['id']]);
+      $db->commit();
+    } catch(Throwable $e){if($db->inTransaction())$db->rollBack();throw $e;}
+    cms_log((int)$u['id'],'restore','layout',1);
+    cms_json(['ok'=>true,'version'=>$version,'layout'=>$layout]);
+  }
+
   if ($route==='me'&&$method==='GET') {
     cms_session();
     $u=null;
@@ -252,6 +349,7 @@ try {
   cms_error('درخواست پشتیبانی نمی‌شود.',404);
 } catch (Throwable $e) {
   error_log('MYCA CMS: '.$e->getMessage());
+  if ($e instanceof PDOException && $e->getCode()==='42S02') cms_error('جدول‌های چیدمان نصب نشده‌اند؛ مهاجرت 001_editorial_layout.sql را در phpMyAdmin اجرا کنید.',503);
   if ($e->getMessage()==='CMS_NOT_CONFIGURED') cms_error('بک‌اند هنوز به پایگاه داده متصل نشده است.',503);
   cms_error('خطای داخلی سرور؛ گزارش فنی را بررسی کنید.',500);
 }
