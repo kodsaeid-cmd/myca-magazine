@@ -44,3 +44,19 @@ $q->execute([$aid]);$before=json_decode($q->fetchColumn(),true);
 if(($before['title']??'')!=='عنوان آزمایشی')throw new RuntimeException('Revisions failed');
 
 echo "PASS: MySQL schema, auth hash, real article CRUD, revision persistence, safe HTML.\n";
+
+
+$_GET['slug']='elderly-home-test';
+ob_start();
+include __DIR__.'/../static/api/story.php';
+$html=ob_get_clean();
+if (!str_contains($html,'عنوان آزمایشی') || !str_contains($html,'<h1>') || !str_contains($html,'application/ld+json') || !str_contains($html,'canonical')) {
+  throw new RuntimeException('SEO SSR article HTML failed: '.substr($html,0,400));
+}
+ob_start();
+include __DIR__.'/../static/api/sitemap.php';
+$xml=ob_get_clean();
+if (!str_contains($xml,'elderly-home-test') || !str_contains($xml,'<urlset')) {
+  throw new RuntimeException('Dynamic sitemap is missing published article');
+}
+echo "PASS: server-rendered HTML metadata + dynamic sitemap from actual database.\n";
