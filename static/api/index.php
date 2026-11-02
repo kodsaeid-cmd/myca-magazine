@@ -81,6 +81,10 @@ try {
         $q->execute($ids);
         if(count($q->fetchAll())!==count($ids)){$db->rollBack();cms_error('یکی از مقالات انتخاب‌شده منتشر نشده یا دیگر در دسترس نیست.',409);}
       }
+      $resolved=cms_layout_resolve($db,$layout);
+      foreach($resolved['sections'] as $sec)if($sec['id']==='hero'&&$sec['enabled']&&count($sec['articles'])===0){
+        $db->rollBack();cms_error('برای انتشار ویترین حداقل یک مقاله منتشرشده در بخش شاخص لازم است.',409);
+      }
       $newPublished=(int)$row['published_version']+1;
       $serialized=cms_layout_json($layout);
       $q=$db->prepare('UPDATE cms_editorial_layout SET published_json=?,published_version=?,published_at=UTC_TIMESTAMP(),updated_by=? WHERE id=1');
