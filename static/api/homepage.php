@@ -46,7 +46,7 @@ if($preview) header('X-Robots-Tag:noindex, nofollow');
 <a class="editorial-skip" href="#main-content">رفتن به محتوا</a>
 <div class="topline">دانش برای مراقبت بهتر، آرامش برای زندگی</div>
 <header class="sitehead"><a class="logo" href="/"><img src="/myca-logo.svg" width="116" height="43" alt="MYCA"><strong>مجله مایکا</strong></a>
-<nav aria-label="ناوبری اصلی"><a href="/">خانه</a><a href="/stories/">تازه‌ترین مطالب</a><a href="/stories/?category=elder-care">مراقبت سالمند</a><a href="/stories/?category=child-family">کودک و خانواده</a><a href="/stories/?category=equipment">تجهیزات مراقبتی</a></nav>
+<nav aria-label="ناوبری اصلی"><a href="/">خانه</a><a href="/stories/">تازه‌ترین مطالب</a><a href="/category/elder-care/">مراقبت سالمند</a><a href="/category/child-family/">کودک و خانواده</a><a href="/category/equipment/">تجهیزات مراقبتی</a></nav>
 <a class="headphone" href="tel:41124">پشتیبانی ۴۱۱۲۴</a></header>
 <?php if($preview): ?><aside class="editorial-preview-label">پیش‌نمایش خصوصی چیدمان ذخیره‌شده — این نسخه هنوز منتشر نشده است.</aside><?php endif; ?>
 <main id="main-content" class="editorial-wrap">
@@ -71,7 +71,7 @@ if($preview) header('X-Robots-Tag:noindex, nofollow');
     <section class="editorial-section"><div class="editorial-section-heading"><h2><?= $h($section['title']) ?></h2><p>راهنمای خانواده‌ها برای مراقبت آگاهانه‌تر</p></div>
     <div class="editorial-category-grid">
     <?php foreach($section['category_slugs'] as $category): ?>
-      <a class="editorial-category" href="/stories/?category=<?= $h(rawurlencode($category)) ?>"><span class="editorial-category-icon">✦</span><strong><?= $h($catNames[$category]??$category) ?></strong><small>مشاهده مقالات</small></a>
+      <a class="editorial-category" href="/category/<?= $h(rawurlencode($category)) ?>/"><span class="editorial-category-icon">✦</span><strong><?= $h($catNames[$category]??$category) ?></strong><small>مشاهده مقالات</small></a>
     <?php endforeach; ?></div></section>
   <?php elseif($sid==='editors'||$sid==='latest'): ?>
     <section class="editorial-section"><div class="editorial-section-heading"><h2><?= $h($section['title']) ?></h2><a href="/stories/">مشاهده همه مقالات</a></div>
