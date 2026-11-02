@@ -99,6 +99,24 @@
     try { articles = (await request('articles')).articles; }
     catch (e) { error = e.message; }
   }
+  async function installEditorialArticles() {
+    clearMessages();
+    if (busy || user?.role !== 'admin') return;
+    if (!confirm('۱۰ مقاله تخصصی با تصاویر شاخص و تنظیمات سئو به دیتابیس افزوده و ویترین فعلی مجله با آن‌ها جایگزین می‌شود. مقاله‌های موجود پاک یا بازنویسی نخواهند شد. ادامه می‌دهید؟')) return;
+    busy = true;
+    try {
+      const r = await request('editorial-pack-install', {
+        method: 'POST', headers: {'Content-Type':'application/json'},
+        body: JSON.stringify({ confirm_install: true, replace_layout: true })
+      });
+      notice = 'بسته تحریریه مایکا نصب و ویترین منتشر شد: ' +
+        r.result.created + ' مقاله جدید و ' + r.result.already_present + ' مقاله موجود. ' +
+        'تصاویر را در مسیر /media/editorial/ بررسی کنید.';
+      await loadDashboard();
+      await loadArticles();
+    } catch (e) { error = e.message; }
+    finally { busy = false; }
+  }
   async function loadMedia() {
     try { media = (await request('media')).media; }
     catch (e) { error = e.message; }
@@ -340,6 +358,13 @@
               <div class="cms-stat"><span><BookOpen size={19}/></span><strong>{Number(counts.draft || 0).toLocaleString('fa-IR')}</strong><small>پیش‌نویس</small></div>
             </div>
             <div class="cms-panel cms-welcome"><div><span class="cms-overline">EDITORIAL WORKFLOW</span><h2>از ایده تا مقاله قابل ایندکس</h2><p>ایجاد مقاله ← ویرایش تصویری ← تنظیم SEO ← بررسی سردبیر ← انتشار HTML و Sitemap</p><button class="cms-primary" onclick={openNew}><Plus size={18}/> شروع نوشتن</button></div><div class="cms-welcome-icon"><BookOpen size={80}/></div></div>
+            {#if user.role === 'admin'}
+              <div class="cms-panel">
+                <div class="cms-panel-head"><h3>بسته ۱۰ مقاله تخصصی مایکا</h3><button class="cms-primary" onclick={installEditorialArticles} disabled={busy}><BookOpen size={18}/> نصب مقاله‌ها و جایگزینی ویترین</button></div>
+                <p>مجموعه نخست مجله شامل ۱۰ راهنمای اصلی مراقبت سالمند با متن کامل، لینک به منابع معتبر، تصویر اختصاصی، متای سئو و پرسش‌های متداول است. با نصب، مقاله‌ها در MySQL منتشر می‌شوند و قابلیت ویرایششان از «مدیریت مقالات» باقی می‌ماند. ویترین فعلی با چیدمان ۴ + ۳ + ۳ مقاله جایگزین می‌شود و نسخه قبلی در تاریخچه چیدمان حفظ خواهد شد.</p>
+                <p>پیش از نصب، پوشه ۱۰ تصویر را در مسیر <code>/media/editorial/</code> آپلود کن. کل دامنه آزمایشی dandoonii.ir همچنان Noindex باقی می‌ماند؛ آماده‌بودن متادیتا به معنی ایندکس‌شدن واقعی در این دامنه نیست.</p>
+              </div>
+            {/if}
             <div class="cms-panel"><div class="cms-panel-head"><h3>مرکز انتشار</h3><button class="cms-link" onclick={() => openView('articles')}>فهرست مقالات <ArrowRight size={15}/></button></div><p>هر مطلب پس از انتشار با لینک مستقل در <a href="/stories/" target="_blank" rel="noopener noreferrer">بخش مقاله‌های پویا</a> و سایت‌مپ اختصاصی در دسترس است. این بخش به‌صورت HTML توسط PHP روی سرور رندر می‌شود.</p></div>
           {:else if view === 'articles'}
             <div class="cms-page-heading"><div><h2>آرشیو مقالات</h2><p>فهرست واقعی نوشته‌ها، وضعیت انتشار و آخرین ویرایش</p></div><button class="cms-primary" onclick={openNew}><Plus size={17}/> ایجاد مقاله</button></div>
