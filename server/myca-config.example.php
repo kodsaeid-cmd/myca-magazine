@@ -8,6 +8,7 @@ return [
     'db_user' => 'mycabl_REPLACE_WITH_USER',
     'db_password' => 'REPLACE_WITH_STRONG_DATABASE_PASSWORD',
     'setup_token' => 'REPLACE_WITH_LONG_RANDOM_ONETIME_TOKEN',
-    'site_url' => 'https://mycablog.dandoonii.ir',
+    // Set this to the exact HTTPS host you are deploying to; use staging first.
+    'site_url' => 'https://staging.mycablog.dandoonii.ir',
     'session_secret' => 'REPLACE_WITH_ANOTHER_RANDOM_64_CHAR_VALUE',
 ];
