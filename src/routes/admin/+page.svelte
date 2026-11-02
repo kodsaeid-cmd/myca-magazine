@@ -52,6 +52,9 @@
       user = r.user || null;
       csrf = r.csrf;
       initialized = r.initialized;
+      // The form is determined by server state. Without this, the first-admin
+      // screen incorrectly submits a login request and always rejects it.
+      authMode = initialized ? 'login' : 'setup';
       if (user) await loadDashboard();
     } catch (e) { serviceError = e.message; }
     finally { loading = false; }
