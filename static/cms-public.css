@@ -1,4 +1,4 @@
-@import url('/_app/immutable/assets/app.css'); /* optional; system font fallback below */
+@import url('/vazir-local.css'); /* deterministic local font for PHP SSR */
 :root{--c:#00a4d4;--n:#062e5c;--line:#e2eaf0;--surface:#f5f8fb}
 *{box-sizing:border-box}html{scroll-behavior:smooth}body{margin:0;background:#f7fbfd;color:var(--n);font:15px/2 'Vazir',Tahoma,sans-serif}a{color:inherit;text-decoration:none}
 .topline{text-align:center;padding:4px 14px;background:#eaf7fb;color:#005474;font-size:12px}
