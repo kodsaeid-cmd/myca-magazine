@@ -18,5 +18,16 @@ jobs:
         run: npm install --no-audit --no-fund
       - name: Check Svelte
         run: npm run check
+      - name: Lint PHP backend and SSR templates
+        run: |
+          find static/api -type f -name '*.php' -print0 | xargs -0 -n1 php -l
+          php -l server/myca-config.example.php
       - name: Build
         run: npm run build
+      - name: Verify static bundle includes real backend and CMS routes
+        run: |
+          test -s build/index.html
+          test -s build/admin/index.html
+          test -s build/api/index.php
+          test -s build/api/story.php
+          test -s build/.htaccess
