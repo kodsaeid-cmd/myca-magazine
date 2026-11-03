@@ -38,7 +38,7 @@ try {
     <select name="category"><option value="">همه موضوعات</option><?php foreach(cms_categories() as $slug=>$label): ?><option value="<?= $h($slug) ?>" <?= $category===$slug?'selected':'' ?>><?= $h($label) ?></option><?php endforeach; ?></select><button>جست‌وجو</button></form>
   <section class="story-grid"><?php foreach($items as $a): ?>
     <a class="story-card" href="/stories/<?= $h($a['slug']) ?>/">
-    <?php if($a['cover_url']): ?><img src="<?= $h($a['cover_url']) ?>" loading="lazy" alt="<?= $h($a['cover_alt']) ?>"><?php endif; ?>
+    <?php if($a['cover_url']): ?><img src="<?= $h(cms_public_image_url((string)$a['cover_url'])) ?>" loading="lazy" alt="<?= $h($a['cover_alt']) ?>"><?php endif; ?>
     <div><span class="eyebrow"><?= $h(cms_categories()[$a['category_slug']]??'مایکا') ?></span>
     <h2><?= $h($a['title']) ?></h2><p><?= $h($a['excerpt']) ?></p></div></a>
   <?php endforeach; ?></section><?php if(!$items): ?><p class="empty">هنوز مطلبی با این مشخصات منتشر نشده است.</p><?php endif; ?></main>
