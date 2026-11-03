@@ -27,8 +27,8 @@ $h=static fn($v)=>htmlspecialchars((string)$v,ENT_QUOTES|ENT_SUBSTITUTE,'UTF-8')
 $origin=rtrim((string)(cms_config()['site_url']??'https://mycablog.dandoonii.ir'),'/');
 $links=static fn($a)=>'/stories/'.rawurlencode((string)$a['slug']).'/';
 $photo=static function($a)use($h) {
-  $url=cms_safe_url((string)($a['cover_url']??''));
-  return $url?'<img src="'.$h($url).'" alt="'.$h($a['cover_alt']?:$a['title']).'" loading="lazy">':'<span class="editorial-photo-missing">مجله مایکا</span>';
+  $url=cms_public_image_url((string)($a['cover_url']??''));
+  return $url?'<img src="'.$h($url).'" alt="'.$h($a['cover_alt']?:$a['title']).'" loading="lazy" decoding="async">':'<span class="editorial-photo-missing">مجله مایکا</span>';
 };
 header('Content-Type:text/html; charset=utf-8');
 header('Cache-Control:'.($preview?'no-store, private':'public,max-age=90'));
