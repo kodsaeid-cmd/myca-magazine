@@ -12,6 +12,7 @@ on:
     paths:
       - '.github/workflows/production-cpanel.yml'
       - '.github/workflows/production-parspack-ftps.yml'
+      - 'server/PRODUCTION-BLOG-MYCAAPP-DEPLOY.md'
 
 permissions:
   contents: write
