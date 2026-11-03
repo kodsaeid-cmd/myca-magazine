@@ -92,7 +92,7 @@ jobs:
 
           test ! -e build/index.html
           test ! -e build/article
-          grep -F 'Sitemap: https://blog.mycaapp.ir/sitemap.xml' build/robots.txt
+          grep -F 'MYCA public distribution: refuse other Host headers.' build/.htaccess
           grep -F 'blog\\.mycaapp\\.ir' build/.htaccess
           ! grep -q 'Disallow: /$' build/robots.txt
           ! grep -q 'X-Robots-Tag "noindex' build/.htaccess
