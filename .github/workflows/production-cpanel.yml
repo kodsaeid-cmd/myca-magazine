@@ -18,6 +18,13 @@ on:
       - 'static/api/index.php'
       - 'src/routes/admin/+page.svelte'
       - 'src/lib/styles/admin.css'
+      - 'static/api/image.php'
+      - 'static/api/editorial-visuals.php'
+      - 'static/api/homepage.php'
+      - 'static/api/story.php'
+      - 'static/api/stories.php'
+      - 'static/cms-public.css'
+      - 'tests/cms-db-smoke.php'
 
 permissions:
   contents: write
@@ -52,6 +59,11 @@ jobs:
           test -s build/index.php
           test -s build/api/homepage.php
           test -s build/api/story.php
+          test -s build/api/image.php
+          test -s build/api/editorial-visuals.php
+          test -s build/media-check/photo-child-play.jpg
+          test -s build/media-check/photo-child-home-safety.jpg
+          test -s build/media/editorial-more/cover-11-elder-discharge.jpg
           test -s build/api/stories.php
           test -s build/api/sitemap.php
           test -s build/admin/index.html
