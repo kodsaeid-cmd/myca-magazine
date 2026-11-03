@@ -57,7 +57,17 @@ Test each directly on production HTTPS (no search index needed until launch):
 The existing `.github/workflows/parspack-ftps.yml` is for staging ONLY.
 Do not point its staging FTP user to the production directory or reuse staging deployment secrets. The previous staging FTPS handshake failed because the server presented a self-signed certificate.
 
-For future hands-free production deployment, create a **dedicated** restricted FTPS or SSH/SFTP production deployment account, verify the server TLS/SSH identity, configure production-only Actions secrets, test a dry run, then opt into automatic deployment after passing CI. Never disable certificate validation as a shortcut. Database and uploaded media are NOT automatically copied by a code deploy.
+The production-safe deployment workflow is now at `.github/workflows/production-parspack-ftps.yml`. It is **disabled for automatic publication** by default and never uses the staging FTP account.
+
+1. Create a **dedicated FTPS account** whose FTP root is exactly the **production** document root `blog.mycaapp.ir`. Verify its directory scope in cPanel.
+2. On GitHub **Settings > Secrets and variables > Actions**, set repository variable `MYCA_PROD_FTPS_SERVER` to the FTP hostname matching the certificate. Add secrets `MYCA_PROD_FTPS_USERNAME` and `MYCA_PROD_FTPS_PASSWORD`; never share credentials in messages or commit them.
+3. If ParsPack uses a private/self-signed FTPS certificate, first independently verify its full certificate and SHA-256 fingerprint with ParsPack support, then store the verified PEM as optional secret `MYCA_PROD_FTPS_CA_PEM`. Prefer a publicly trusted FTPS server certificate. **Never disable TLS checks.**
+4. Generate a production candidate for the **current main commit** via `MYCA Magazine | production blog.mycaapp.ir` Action. Successful packaging produces `production-candidate-<sha>`.
+5. Run `MYCA Production | ParsPack FTPS Deploy` with `publish=false`. This performs the FTP action's dry-run and MUST list the production directory, not staging files.
+6. After database/media backups and SSL/domain checks, run the same Action with `publish=true` once and validate all production routes.
+7. Only after successful verification, set repository variable `MYCA_PROD_AUTO_DEPLOY=true`. Automatic delivery then occurs on successful production-package workflow runs. Enable package-on-each-push separately, after signoff; at present its push trigger is limited to production workflow file changes (plus manual dispatch).
+
+Database and uploaded media are NOT automatically copied by a code deployment. The earlier experimental FTPS handshake failed due to a self-signed certificate and must be resolved independently of DNS.
 
 ## Cutover rule
 
