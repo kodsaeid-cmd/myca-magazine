@@ -10,7 +10,11 @@
 .excerpt{font-size:17px;color:#5d7083;line-height:2}.byline{font-size:12px;color:#8999a6;margin:15px 0 24px}.cover{margin:22px auto 40px;overflow:hidden;border-radius:25px;max-width:1020px}
 .cover img{width:100%;max-height:550px;object-fit:cover}.prose{max-width:760px;margin:auto;background:white;border-radius:22px;padding:32px 45px;font-size:16px;line-height:2.4;box-shadow:0 10px 35px #062e5c09}
 .prose h2,.prose h3{line-height:1.65;margin:30px 0 12px}.prose p{margin:0 0 18px}.prose a{color:#007aa5;text-decoration:underline}.prose blockquote{border-right:4px solid var(--c);background:#f1fbfd;margin:22px 0;padding:12px 22px}
-.prose img{max-width:100%;height:auto;border-radius:16px}.prose table{border-collapse:collapse;width:100%;display:block;overflow:auto}.prose th,.prose td{border:1px solid var(--line);padding:9px 12px}.prose th{background:var(--surface)}.prose ul,.prose ol{padding-right:26px}
+.prose img{max-width:100%;height:auto;border-radius:16px;display:block}
+.prose p:has(>img){margin:27px 0 33px;border:1px solid #e2eaf0;border-radius:19px;padding:8px;background:#f7fbfd;overflow:hidden}
+.prose p:has(>img)>img{width:100%;max-height:460px;object-fit:cover;aspect-ratio:16/9;background:#e6f3f6}
+.cover{background:#e6f3f6}.cover img{display:block;min-height:260px;aspect-ratio:16/9}
+@media(max-width:550px){.prose p:has(>img){padding:5px;margin:19px 0}.prose p:has(>img)>img{aspect-ratio:4/3}.cover img{min-height:170px}}.prose table{border-collapse:collapse;width:100%;display:block;overflow:auto}.prose th,.prose td{border:1px solid var(--line);padding:9px 12px}.prose th{background:var(--surface)}.prose ul,.prose ol{padding-right:26px}
 .faq,.end-cta{max-width:760px;margin:25px auto;background:#fff;border-radius:20px;padding:25px}.faq details{border-bottom:1px solid var(--line);padding:12px 0}.faq summary{cursor:pointer;font-weight:bold}
 .end-cta{background:#eaf7fb}.end-cta h3{margin:0}.end-cta p{color:#62768c}footer{text-align:center;padding:30px;background:#062e5c;color:white;font-size:13px}
 .stories-wrap{max-width:1200px;margin:45px auto;padding:0 25px;min-height:55vh}.stories-wrap h1{margin:6px 0}.story-filters{display:flex;gap:10px;flex-wrap:wrap;margin:24px 0}.story-filters input,.story-filters select{border:1px solid var(--line);padding:11px 15px;min-width:180px;border-radius:12px;font:inherit;background:white}
