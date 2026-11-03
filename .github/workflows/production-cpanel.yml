@@ -5,6 +5,12 @@ name: MYCA Magazine | production blog.mycaapp.ir
 # Upload/deploy only after separate DB, images, DNS and HTTPS are verified.
 on:
   workflow_dispatch:
+  # Produce one reviewed release when the packaging workflow itself changes.
+  # Regular code pushes do not deploy production.
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/production-cpanel.yml'
 
 permissions:
   contents: write
