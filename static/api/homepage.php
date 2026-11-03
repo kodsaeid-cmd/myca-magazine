@@ -26,9 +26,9 @@ try {
 $h=static fn($v)=>htmlspecialchars((string)$v,ENT_QUOTES|ENT_SUBSTITUTE,'UTF-8');
 $origin=rtrim((string)(cms_config()['site_url']??'https://mycablog.dandoonii.ir'),'/');
 $links=static fn($a)=>'/stories/'.rawurlencode((string)$a['slug']).'/';
-$photo=static function($a)use($h) {
+$photo=static function($a,bool $priority=false)use($h) {
   $url=cms_public_image_url((string)($a['cover_url']??''));
-  return $url?'<img src="'.$h($url).'" alt="'.$h($a['cover_alt']?:$a['title']).'" loading="lazy" decoding="async">':'<span class="editorial-photo-missing">مجله مایکا</span>';
+  return $url?'<img src="'.$h($url).'" alt="'.$h($a['cover_alt']?:$a['title']).'" '.($priority?'loading="eager" fetchpriority="high"':'loading="lazy" decoding="async"').'>':'<span class="editorial-photo-missing">مجله مایکا</span>';
 };
 header('Content-Type:text/html; charset=utf-8');
 header('Cache-Control:'.($preview?'no-store, private':'public,max-age=90'));
@@ -57,7 +57,7 @@ if($preview) header('X-Robots-Tag:noindex, nofollow');
     <section class="editorial-hero" aria-label="<?= $h($section['title']) ?>">
     <?php if($items): $lead=$items[0]; ?>
       <a class="editorial-hero-main" href="<?= $h($links($lead)) ?>">
-        <?= $photo($lead) ?><span class="editorial-img-overlay"></span>
+        <?= $photo($lead,true) ?><span class="editorial-img-overlay"></span>
         <div class="editorial-hero-copy"><span class="editorial-kicker">انتخاب مجله مایکا</span><h1><?= $h($lead['title']) ?></h1><p><?= $h($lead['excerpt']) ?></p><span class="editorial-read">مطالعه مقاله</span></div>
       </a>
       <div class="editorial-hero-side"><h2><?= $h($section['title']) ?></h2>
