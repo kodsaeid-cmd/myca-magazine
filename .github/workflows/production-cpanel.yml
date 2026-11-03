@@ -1,0 +1,113 @@
+name: MYCA Magazine | production blog.mycaapp.ir
+
+# Safe, manual, independent PRODUCTION package only.
+# This workflow NEVER touches experimental hosting or publishes itself.
+# Upload/deploy only after separate DB, images, DNS and HTTPS are verified.
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: myca-magazine-production-package
+  cancel-in-progress: false
+
+jobs:
+  package-production:
+    name: Build and verify production CMS distribution
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Dependencies and frontend checks
+        run: |
+          npm ci --no-audit --no-fund
+          npm run check
+      - name: PHP lint and compile all assets
+        run: |
+          find static/api -type f -name '*.php' -print0 | xargs -0 -n1 php -l
+          php -l server/myca-config.production.example.php
+          npm run build
+      - name: Remove legacy demo routes and prepare production SEO
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -s build/index.php
+          test -s build/api/homepage.php
+          test -s build/api/story.php
+          test -s build/api/stories.php
+          test -s build/api/sitemap.php
+          test -s build/admin/index.html
+          test -s build/vazir-local.css
+          test -s build/fonts/Vazir-Regular.woff2
+          test -s build/fonts/Vazir-Medium.woff2
+          test -s build/fonts/Vazir-Bold.woff2
+          test -s build/fonts/Vazir-Light.woff2
+          test -s build/.htaccess
+          test -s build/myca-logo.svg
+
+          # Static Svelte pages are build fallback/demo only. CMS/MySQL owns routes.
+          rm -rf build/article build/category build/search build/stories
+          rm -f build/index.html build/sitemap.xml
+
+          # Production ONLY. Staging remains noindex in its independent workflow.
+          cat > build/robots.txt <<'ROBOTS'
+          User-agent: *
+          Allow: /
+          Disallow: /admin/
+          Disallow: /api/
+          Disallow: /editorial-preview/
+          Disallow: /media-check/
+          Disallow: /article/
+          Sitemap: https://blog.mycaapp.ir/sitemap.xml
+          ROBOTS
+
+          # Prevent accidental use of the production bundle on staging or
+          # unrelated hosts; webserver must match the approved public domain.
+          python3 - <<'PYTHON'
+          from pathlib import Path
+          p=Path('build/.htaccess')
+          data=p.read_text()
+          assert 'RewriteEngine On' in data
+          assert 'X-Robots-Tag "noindex' not in data
+          guard=(
+              'RewriteEngine On\n'
+              '# MYCA public distribution: refuse other Host headers.\n'
+              'RewriteCond %{HTTP_HOST} !^blog\\.mycaapp\\.ir(:[0-9]+)?$ [NC]\n'
+              'RewriteRule ^ - [F,L]\n'
+          )
+          data=data.replace('RewriteEngine On\n',guard,1)
+          p.write_text(data)
+          PYTHON
+
+          test ! -e build/index.html
+          test ! -e build/article
+          grep -F 'Sitemap: https://blog.mycaapp.ir/sitemap.xml' build/robots.txt
+          grep -F 'blog\\.mycaapp\\.ir' build/.htaccess
+          ! grep -q 'Disallow: /$' build/robots.txt
+          ! grep -q 'X-Robots-Tag "noindex' build/.htaccess
+
+          (cd build && zip -qr ../myca-cms-production.zip .)
+          unzip -t myca-cms-production.zip | tail -1
+          unzip -l myca-cms-production.zip | grep -F 'fonts/Vazir-Regular.woff2'
+          unzip -l myca-cms-production.zip | grep -F 'api/homepage.php'
+      - name: Save reviewed production package
+        uses: actions/upload-artifact@v4
+        with:
+          name: myca-cms-production
+          path: myca-cms-production.zip
+          if-no-files-found: error
+          retention-days: 30
+      - name: Create explicit production candidate release (not deployment)
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          TAG="production-candidate-$(git rev-parse --short HEAD)"
+          gh release create "$TAG" myca-cms-production.zip \
+            --title "MYCA Magazine - Production candidate (not deployed)" \
+            --notes "For https://blog.mycaapp.ir ONLY. Safe package; NOT DEPLOYED. Requires independent production MySQL DB, external private config, preserved media, DNS + valid SSL and manual verification. Do not deploy to mycablog.dandoonii.ir." \
+            --prerelease --latest=false
