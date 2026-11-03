@@ -4,6 +4,7 @@ require_once __DIR__.'/bootstrap.php';
 require_once __DIR__.'/layout.php';
 require_once __DIR__.'/editorial-import.php';
 require_once __DIR__.'/editorial-import-more.php';
+require_once __DIR__.'/editorial-visuals.php';
 ini_set('display_errors','0');
 header('X-Content-Type-Options: nosniff');
 header('Referrer-Policy: same-origin');
@@ -59,6 +60,23 @@ try {
       throw $e;
     }
     cms_json(['ok'=>true,'result'=>$res]);
+  }
+
+  // Bulk inline-image installation for the twenty original source-backed
+  // guides. It never rewrites titles or existing editor-added images.
+  if ($route==='editorial-visuals-install'&&$method==='POST') {
+    cms_csrf();$u=cms_user('admin');$data=cms_input();
+    if(empty($data['confirm_install']))cms_error('تأیید افزودن تصاویر مقالات لازم است.',400);
+    try {
+      $result=cms_editorial_visuals_install($db,(int)$u['id'],!empty($data['dry_run']));
+    } catch(RuntimeException $e) {
+      if(str_starts_with($e->getMessage(),'INLINE_IMAGE_FILE_MISSING_OR_INVALID:'))
+        cms_error('فایل تصویری مورد نیاز پیدا نشد یا معتبر نیست: '.substr($e->getMessage(),37).' — پوشه media را روی همین دامنه بررسی کن.',409);
+      if(str_starts_with($e->getMessage(),'ARTICLE_HEADINGS_MISSING'))
+        cms_error('بخش‌های یک مقاله برای درج امن تصاویر کافی نیست؛ متن را بررسی کنید.',409);
+      throw $e;
+    }
+    cms_json(['ok'=>true,'result'=>$result]);
   }
 
   // Editorial Layout Studio: drafts and public versions are separate.
@@ -244,7 +262,8 @@ try {
       if($cover!=='' && !$external && preg_match('~^/media/[a-zA-Z0-9_./-]+\\.(?:jpg|jpeg|png|webp)$~',$cover)
         && !str_contains($cover,'..')){
         $file=$webRoot.$cover;
-        $onDisk=is_file($file) && filesize($file)>100;
+        $check=is_file($file)?@getimagesize($file):false;
+        $onDisk=(bool)$check && in_array((string)($check['mime']??''),['image/jpeg','image/png','image/webp'],true);
       }
       $inlineCount=preg_match_all('~<img\\b~i',(string)$article['body_html']);
       if(!$inlineCount)$noInline++;
