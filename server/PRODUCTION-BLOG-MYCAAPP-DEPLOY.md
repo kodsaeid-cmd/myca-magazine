@@ -52,6 +52,15 @@ Test each directly on production HTTPS (no search index needed until launch):
 - Verify both desktop/mobile layout and first 10 original + next 10 editorial covers.
 - Verify backups/restoration procedures, error logs and file permissions.
 
+## CMS account editing and image diagnostics (November 2026)
+
+- Dashboard > **بررسی تصاویر مقالات** > **اسکن فایل‌های تصاویر**: check every published article's local cover URL against physical files in the production document root. The report separately counts articles without inline images. The current source-backed editorial text packs do **not** include interior illustrations by default.
+- Dashboard > **کاربران و دسترسی‌ها**: the admin can click **ویرایش حساب** to change a user's display name, email, role, active status and reset their password. Password fields have visibility toggles. Setting a new password requires 14-256 characters, is hashed server-side, and invalidates prior sessions. Changing your own admin password requires the current password.
+- Initial ten cover assets are **not included in git source**. Preserve/copy `media/editorial/cover-01...cover-10*.webp` from the existing experimental site's `media/editorial` folder or the original MYCA editorial covers ZIP, to `/home/<cpanel-account>/blog.mycaapp.ir/media/editorial/`. Do NOT overwrite unrelated uploads.
+- Additional ten covers are compiled from the verified photo preparation script into `media/editorial-more/` by `npm run build`.
+- The `/api/index.php?route=media-audit` endpoint requires an authenticated admin. It does not expose filesystem paths to visitors or mutate files.
+- Do not log into a public site on HTTP or with an untrusted/self-signed TLS identity; resolve CA/CAA and HTTPS before working with live credentials.
+
 ## 6. GitHub → ParsPack continuous deployment (after first release)
 
 The existing `.github/workflows/parspack-ftps.yml` is for staging ONLY.
