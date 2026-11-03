@@ -147,6 +147,35 @@
     try { users = (await request('users')).users; }
     catch (e) { error = e.message; }
   }
+  function publicImageUrl(url) {
+    if (typeof url !== 'string') return '';
+    const safe = /^\/(?:media\/(?:editorial|editorial-more|editorial-inline|uploads)|media-check)\/[A-Za-z0-9_./-]+\.(?:jpe?g|png|webp)$/.test(url);
+    return safe && !url.includes('..') ? '/api/image.php?p=' + encodeURIComponent(url) : url;
+  }
+  async function installAllInlineImages() {
+    if (busy || user?.role !== 'admin') return;
+    clearMessages();
+    if (!confirm('افزودن ۳ تصویر موضوعی به هر یک از ۲۰ مقاله اصلی مجله؟ تصاویر فعلی و متن‌ها حفظ می‌شوند و پیش از تغییر، نسخه پشتیبان مقاله ذخیره خواهد شد.')) return;
+    busy = true;
+    try {
+      const payload = { confirm_install: true, dry_run: true };
+      const pre = await request('editorial-visuals-install', {
+        method: 'POST', headers: { 'Content-Type':'application/json' }, body: JSON.stringify(payload)
+      });
+      if (pre.result.updated_articles === 0) {
+        notice = 'همه مقالات موجود از قبل عکس در متن دارند یا در بسته ۲۰ مقاله اصلی نیستند؛ تغییری لازم نبود.';
+      } else {
+        const done = await request('editorial-visuals-install', {
+          method: 'POST', headers: { 'Content-Type':'application/json' },
+          body: JSON.stringify({ confirm_install: true, dry_run: false })
+        });
+        notice = done.result.updated_articles + ' مقاله با ' + done.result.images_added +
+          ' تصویر درون‌متنی به‌روزرسانی شدند. نسخه قبلی مقالات در تاریخچه ویرایش محفوظ است.';
+      }
+      imageAudit = await request('media-audit');
+    } catch(e) { error = e.message; }
+    finally { busy = false; }
+  }
   async function auditArticleImages() {
     clearMessages(); imageAuditLoading = true;
     try { imageAudit = await request('media-audit'); }
@@ -456,7 +485,11 @@
               </div>
             {/if}
             <div class="cms-panel">
-              <div class="cms-panel-head"><h3>بررسی تصاویر مقالات</h3><button class="cms-outline" onclick={auditArticleImages} disabled={imageAuditLoading}><ImageIcon size={17}/> {imageAuditLoading ? 'در حال بررسی…' : 'اسکن فایل‌های تصاویر'}</button></div>
+              <div class="cms-panel-head"><h3>بررسی تصاویر مقالات</h3><button class="cms-outline" onclick={auditArticleImages} disabled={imageAuditLoading || busy}><ImageIcon size={17}/> {imageAuditLoading ? 'در حال بررسی…' : 'اسکن فایل‌های تصاویر'}</button></div>
+              {#if user.role === 'admin'}
+                <button class="cms-primary" onclick={installAllInlineImages} disabled={busy}><ImageIcon size={17}/> {busy ? 'در حال آماده‌سازی تصاویر…' : 'افزودن تصاویر به تمام ۲۰ مقاله اصلی'}</button>
+                <p class="cms-help">با یک کلیک پس از بررسی فایل‌ها، حداکثر ۶۰ تصویر مرتبط از کتابخانه مایکا بین بخش‌های مقاله درج می‌شود. مقالات دارای تصویر فعلی بدون تغییر می‌مانند.</p>
+              {/if}
               <p class="cms-help">تفاوت بین کاور مفقود روی هاست و نبود تصویر درون متن مقاله را جداگانه نشان می‌دهد.</p>
               {#if imageAudit}
                 <p>از {imageAudit.total} مقاله منتشرشده، {imageAudit.missing_covers} مقاله کاور محلی گمشده/ثبت‌نشده دارند و {imageAudit.without_inline_images} مقاله تصویر درون‌متنی ندارند.</p>
@@ -511,13 +544,13 @@
               <aside class="cms-editor-aside">
                 <div class="cms-panel"><h3>انتشار و نشانی</h3><label class="cms-field">اسلاگ انگلیسی مقاله<input dir="ltr" bind:value={form.slug} maxlength="160" placeholder="elderly-home-care" /></label><p class="cms-help">نشانی عمومی: /stories/{form.slug || 'article-slug'}/</p>{#if form.status === 'published'}<button class="cms-outline full" onclick={newTab}><ExternalLink size={16}/> مشاهده مقاله منتشرشده</button>{/if}</div>
                 <div class="cms-panel"><h3>دسته‌بندی</h3><label class="cms-field">انتخاب دسته<select bind:value={form.category_slug}>{#each Object.entries(categories) as [slug,label]}<option value={slug}>{label}</option>{/each}</select></label><label class="cms-checkbox"><input type="checkbox" bind:checked={form.featured}/> انتخاب سردبیر (Featured)</label></div>
-                <div class="cms-panel"><h3>تصویر شاخص</h3>{#if form.cover_url}<img class="cms-cover-preview" src={form.cover_url} alt={form.cover_alt} />{/if}<label class="cms-field">آدرس تصویر<input dir="ltr" bind:value={form.cover_url} placeholder="/media/uploads/…" /></label><label class="cms-field">متن جایگزین (ALT)<input bind:value={form.cover_alt} maxlength="255" placeholder="توصیف دقیق تصویر" /></label><button class="cms-outline full" onclick={() => uploadInput?.click()}><Upload size={17}/> بارگذاری تصویر</button></div>
+                <div class="cms-panel"><h3>تصویر شاخص</h3>{#if form.cover_url}<img class="cms-cover-preview" src={publicImageUrl(form.cover_url)} alt={form.cover_alt} />{/if}<label class="cms-field">آدرس تصویر<input dir="ltr" bind:value={form.cover_url} placeholder="/media/uploads/…" /></label><label class="cms-field">متن جایگزین (ALT)<input bind:value={form.cover_alt} maxlength="255" placeholder="توصیف دقیق تصویر" /></label><button class="cms-outline full" onclick={() => uploadInput?.click()}><Upload size={17}/> بارگذاری تصویر</button></div>
                 <div class="cms-panel cms-publish-info"><ShieldCheck size={22} color="#00a4d4"/><h3>انتشار استاندارد سئو</h3><p>صفحه عمومی بعد از انتشار از MySQL به HTML سمت سرور تبدیل می‌شود و در سایت‌مپ پویا ثبت خواهد شد.</p></div>
               </aside>
             </div>
           {:else if view === 'media'}
             <div class="cms-page-heading"><div><h2>کتابخانه رسانه مایکا</h2><p>فایل‌های واقعی روی هاست ایران؛ نه لینک‌های موقت CDN</p></div><button class="cms-primary" onclick={() => uploadInput?.click()}><Upload size={17}/> آپلود تصویر</button></div>
-            <div class="cms-panel"><label class="cms-field" style="max-width:450px">متن جایگزین تصویر هنگام آپلود<input bind:value={selectedImageAlt} placeholder="مثلاً مراقب در کنار سالمند در منزل" /></label><div class="cms-media-grid">{#each media as item}<div class="cms-media-card"><img src={item.path} alt={item.alt}/><div><strong>{item.alt || 'تصویر بدون ALT'}</strong><small>{Math.round(item.bytes / 1024)} KB</small><button class="cms-link" onclick={() => { navigator.clipboard?.writeText(location.origin + item.path); notice = 'لینک تصویر کپی شد.'; }}>کپی آدرس</button></div></div>{:else}<div class="cms-empty">هنوز رسانه‌ای در پایگاه داده ثبت نشده است.</div>{/each}</div></div>
+            <div class="cms-panel"><label class="cms-field" style="max-width:450px">متن جایگزین تصویر هنگام آپلود<input bind:value={selectedImageAlt} placeholder="مثلاً مراقب در کنار سالمند در منزل" /></label><div class="cms-media-grid">{#each media as item}<div class="cms-media-card"><img src={publicImageUrl(item.path)} alt={item.alt}/><div><strong>{item.alt || 'تصویر بدون ALT'}</strong><small>{Math.round(item.bytes / 1024)} KB</small><button class="cms-link" onclick={() => { navigator.clipboard?.writeText(location.origin + item.path); notice = 'لینک تصویر کپی شد.'; }}>کپی آدرس</button></div></div>{:else}<div class="cms-empty">هنوز رسانه‌ای در پایگاه داده ثبت نشده است.</div>{/each}</div></div>
           {:else if view === 'users' && user.role === 'admin'}
             <div class="cms-page-heading"><div><h2>مدیریت کاربران تحریریه</h2><p>نویسنده، سردبیر و مدیر کل با کنترل دسترسی واقعی روی سرور</p></div><button class="cms-outline" onclick={loadUsers}><RefreshCw size={17}/> به‌روزرسانی</button></div>
             <div class="cms-panel"><h3>ایجاد حساب کاربری</h3>
