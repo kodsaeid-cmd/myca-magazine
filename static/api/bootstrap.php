@@ -40,7 +40,8 @@ function cms_session(): void {
   ini_set('session.use_only_cookies','1');
   session_name('myca_cms_session');
   session_set_cookie_params([
-    'lifetime'=>0,'path'=>'/','secure'=>true,'httponly'=>true,'samesite'=>'Lax'
+    // HTTP cookies are permitted only in explicit local Docker development. Production stays HTTPS-only.
+    'lifetime'=>0,'path'=>'/','secure'=>(getenv('MYCA_ENV')==='development' && getenv('MYCA_COOKIE_SECURE')==='0') ? false : true,'httponly'=>true,'samesite'=>'Lax'
   ]);
   session_start();
   if (!isset($_SESSION['csrf'])) $_SESSION['csrf']=bin2hex(random_bytes(32));
