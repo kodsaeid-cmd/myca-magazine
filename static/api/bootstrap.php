@@ -102,10 +102,17 @@ function cms_user(string $minimum='author'): array {
   cms_session();
   $id=(int)($_SESSION['user_id'] ?? 0);
   if (!$id) cms_error('برای ادامه وارد پنل شوید.',401);
-  $query=cms_db()->prepare('SELECT id,email,display_name,role FROM cms_users WHERE id=? AND active=1');
+  $query=cms_db()->prepare('SELECT id,email,display_name,role,password_hash FROM cms_users WHERE id=? AND active=1');
   $query->execute([$id]);
   $user=$query->fetch();
   if (!$user) { $_SESSION=[]; cms_error('نشست نامعتبر است.',401); }
+  // Password changes by an admin revoke all previously issued sessions.
+  // The signature is server-side only and never exposed to a browser.
+  $expected=hash_hmac('sha256',(string)$user['password_hash'],(string)cms_config()['session_secret']);
+  if (!isset($_SESSION['auth_signature']) || !hash_equals($expected,(string)$_SESSION['auth_signature'])) {
+    $_SESSION=[];cms_error('رمز حساب تغییر کرده یا نشست قدیمی است؛ دوباره وارد شو.',401);
+  }
+  unset($user['password_hash']);
   $ranks=['author'=>1,'editor'=>2,'admin'=>3];
   if (($ranks[$user['role']]??0)<($ranks[$minimum]??9)) cms_error('دسترسی کافی ندارید.',403);
   return $user;
