@@ -164,8 +164,16 @@ try {
     cms_session();
     $u=null;
     if (!empty($_SESSION['user_id'])) {
-      $q=$db->prepare('SELECT id,email,display_name,role FROM cms_users WHERE id=? AND active=1');
+      $q=$db->prepare('SELECT id,email,display_name,role,password_hash FROM cms_users WHERE id=? AND active=1');
       $q->execute([(int)$_SESSION['user_id']]);$u=$q->fetch()?:null;
+      if ($u) {
+        $signature=hash_hmac('sha256',(string)$u['password_hash'],(string)cms_config()['session_secret']);
+        if (!isset($_SESSION['auth_signature']) || !hash_equals($signature,(string)$_SESSION['auth_signature'])) $u=null;
+        else unset($u['password_hash']);
+      }
+      if (!$u) {
+        $_SESSION=[];session_regenerate_id(true);$_SESSION['csrf']=bin2hex(random_bytes(32));
+      }
     }
     $initialized=(bool)$db->query('SELECT id FROM cms_users LIMIT 1')->fetchColumn();
     cms_json(['ok'=>true,'authenticated'=>(bool)$u,'user'=>$u,'csrf'=>$_SESSION['csrf'],'initialized'=>$initialized]);
@@ -201,6 +209,7 @@ try {
     }
     session_regenerate_id(true);
     $_SESSION['user_id']=(int)$u['id'];$_SESSION['csrf']=bin2hex(random_bytes(32));
+    $_SESSION['auth_signature']=hash_hmac('sha256',(string)$u['password_hash'],(string)$cfg['session_secret']);
     $db->prepare('UPDATE cms_users SET last_login_at=UTC_TIMESTAMP() WHERE id=?')->execute([$u['id']]);
     $db->prepare('DELETE FROM cms_login_attempts WHERE ip_hash=?')->execute([$ipHash]);
     cms_json(['ok'=>true,'user'=>['id'=>$u['id'],'email'=>$u['email'],'display_name'=>$u['display_name'],'role'=>$u['role']],'csrf'=>$_SESSION['csrf']]);
