@@ -2,7 +2,7 @@
 declare(strict_types=1);
 // PRODUCTION ONLY. Copy OUTSIDE document root to:
 // /home/<cpanel-account>/myca-magazine-config-production.php
-// Public document root MUST be: /home/<cpanel-account>/blog.mycaapp.ir
+// Public document root: /home/<cpanel-account>/public_html/blog.mycaapp.ir\n// or /home/<cpanel-account>/blog.mycaapp.ir if hosting allows it.\n// In BOTH cases, this config file remains outside the public document root.
 // Do not commit credentials, setup secrets, or database dumps.
 return [
     'db_host' => 'localhost',
