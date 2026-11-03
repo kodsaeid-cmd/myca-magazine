@@ -142,7 +142,7 @@ function cms_public_image_url(string $url): string {
   $valid=cms_safe_url($url);
   if ($valid==='' || !str_starts_with($valid,'/media/')) return $valid;
   if (str_contains($valid,'..') || str_contains($valid,'//') ||
-      !preg_match('~^/media/(?:editorial|editorial-more|editorial-inline|uploads)/[A-Za-z0-9_./-]+\\.(?:jpg|jpeg|png|webp)$~D',$valid)) return '';
+      !preg_match('~^/(?:media/(?:editorial|editorial-more|editorial-inline|uploads)|media-check)/[A-Za-z0-9_./-]+\\.(?:jpg|jpeg|png|webp)$~D',$valid)) return '';
   return '/api/image.php?p='.rawurlencode($valid);
 }
 function cms_render_inline_images(string $html): string {
