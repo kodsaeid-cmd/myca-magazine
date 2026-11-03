@@ -1,0 +1,112 @@
+name: MYCA Production | ParsPack FTPS Deploy
+
+# Production deploy is inert until explicitly dispatched or opted into after
+# a verified production-package run. Uses a dedicated production FTP account.
+on:
+  workflow_dispatch:
+    inputs:
+      publish:
+        description: 'Publish to blog.mycaapp.ir? False runs a read-only FTPS dry-run.'
+        required: true
+        type: boolean
+        default: false
+  workflow_run:
+    workflows: ['MYCA Magazine | production blog.mycaapp.ir']
+    types: [completed]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: myca-magazine-production-ftps
+  cancel-in-progress: false
+
+jobs:
+  deployment:
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      (github.event.workflow_run.conclusion == 'success' &&
+       github.event.workflow_run.head_branch == 'main' &&
+       github.event.workflow_run.head_repository.full_name == github.repository &&
+       vars.MYCA_PROD_AUTO_DEPLOY == 'true')
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout approved source commit
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event_name == 'workflow_run' && github.event.workflow_run.head_sha || github.sha }}
+
+      - name: Retrieve verified production candidate for exactly this commit
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          TAG="production-candidate-$(git rev-parse --short HEAD)"
+          mkdir -p dist
+          gh release download "$TAG" --pattern 'myca-cms-production.zip' --dir .
+          unzip -q myca-cms-production.zip -d dist
+          test -s dist/.htaccess
+          test -s dist/index.php
+          test -s dist/api/homepage.php
+          test -s dist/admin/index.html
+          test -s dist/fonts/Vazir-Regular.woff2
+          test ! -e dist/index.html
+          grep -F 'MYCA public distribution: refuse other Host headers.' dist/.htaccess
+          grep -F 'Sitemap: https://blog.mycaapp.ir/sitemap.xml' dist/robots.txt
+          ! grep -q 'Disallow: /$' dist/robots.txt
+          ! grep -q 'X-Robots-Tag "noindex' dist/.htaccess
+
+      - name: Verify dedicated production FTPS connection and credentials
+        shell: bash
+        env:
+          HOST: ${{ vars.MYCA_PROD_FTPS_SERVER }}
+          USER: ${{ secrets.MYCA_PROD_FTPS_USERNAME }}
+          PASS: ${{ secrets.MYCA_PROD_FTPS_PASSWORD }}
+          CA: ${{ secrets.MYCA_PROD_FTPS_CA_PEM }}
+        run: |
+          set -euo pipefail
+          test -n "$HOST" || { echo "::error::Set MYCA_PROD_FTPS_SERVER to the hostname on the trusted FTPS certificate"; exit 1; }
+          test -n "$USER" || { echo "::error::Set MYCA_PROD_FTPS_USERNAME to the dedicated account scoped to blog.mycaapp.ir root"; exit 1; }
+          test -n "$PASS" || { echo "::error::Set MYCA_PROD_FTPS_PASSWORD secret"; exit 1; }
+          if [ -n "$CA" ]; then
+            printf '%s\n' "$CA" > "$RUNNER_TEMP/myca-production-ftps-ca.pem"
+            chmod 600 "$RUNNER_TEMP/myca-production-ftps-ca.pem"
+            openssl x509 -in "$RUNNER_TEMP/myca-production-ftps-ca.pem" -noout -checkend 86400 >/dev/null
+          fi
+
+      - name: Upload only verified production assets via strict FTPS
+        uses: SamKirkland/FTP-Deploy-Action@v4.4.0
+        env:
+          NODE_EXTRA_CA_CERTS: ${{ secrets.MYCA_PROD_FTPS_CA_PEM != '' && format('{0}/myca-production-ftps-ca.pem', runner.temp) || '' }}
+        with:
+          server: ${{ vars.MYCA_PROD_FTPS_SERVER }}
+          username: ${{ secrets.MYCA_PROD_FTPS_USERNAME }}
+          password: ${{ secrets.MYCA_PROD_FTPS_PASSWORD }}
+          protocol: ftps
+          port: 21
+          security: strict
+          local-dir: ./dist/
+          # FTP account must be chrooted to production blog.mycaapp.ir root.
+          server-dir: ./
+          dry-run: ${{ github.event_name == 'workflow_dispatch' && !inputs.publish }}
+          dangerous-clean-slate: false
+          timeout: 60000
+          log-level: standard
+          exclude: |
+            **/.git*
+            **/.git*/**
+            **/node_modules/**
+            **/.well-known/**
+            **/cgi-bin/**
+            **/media/uploads/**
+            **/media/editorial/**
+
+      - name: Result
+        run: |
+          if [ "${{ github.event_name }}" = 'workflow_run' ] || [ "${{ inputs.publish }}" = 'true' ]; then
+            echo 'Production file upload attempted. Verify HTTPS, article images, CMS login, correct DB and production canonical/sitemap before declaring go-live.'
+          else
+            echo 'Production FTPS dry-run completed. No files were intentionally uploaded.'
+          fi
