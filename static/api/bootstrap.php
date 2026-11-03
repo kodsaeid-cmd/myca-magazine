@@ -8,8 +8,20 @@ const MYCA_CMS_CATEGORIES = [
 ];
 
 function cms_config(): array {
-  $path = dirname(__DIR__, 2) . '/myca-magazine-config.php';
-  // CLI tests run in a repository checkout, not at the production cPanel path.
+  // Separate private configurations for the experimental and public hosts.
+  // cPanel staging root: /home/<account>/public_html
+  // cPanel production root: /home/<account>/blog.mycaapp.ir
+  // Both configurations MUST live outside their public document roots.
+  $siteRoot = dirname(__DIR__);
+  $accountRoot = dirname($siteRoot);
+  $path = $accountRoot . '/myca-magazine-config.php';
+  if (basename($siteRoot) === 'blog.mycaapp.ir') {
+    // Fail closed if production credentials have not been provisioned.
+    $path = $accountRoot . '/myca-magazine-config-production.php';
+  }
+  // Optional explicit override for isolated containers and named vhosts.
+  if (getenv('MYCA_CMS_CONFIG_PATH')) $path = (string)getenv('MYCA_CMS_CONFIG_PATH');
+  // CLI integration tests use their own isolated MySQL.
   if (PHP_SAPI === 'cli' && getenv('MYCA_CMS_TEST_CONFIG')) $path = (string)getenv('MYCA_CMS_TEST_CONFIG');
   if (!is_file($path)) {
     throw new RuntimeException('CMS_NOT_CONFIGURED');
@@ -17,6 +29,15 @@ function cms_config(): array {
   $config = require $path;
   if (!is_array($config) || str_contains((string)($config['db_name'] ?? ''), 'REPLACE')) {
     throw new RuntimeException('CMS_NOT_CONFIGURED');
+  }
+  // Never present staging canonical URLs or use staging DB config on the production hostname.
+  if (PHP_SAPI !== 'cli') {
+    $host = strtolower(trim((string)($_SERVER['HTTP_HOST'] ?? '')));
+    $host = preg_replace('/:\\d+$/', '', $host);
+    $configured = strtolower((string)(parse_url((string)($config['site_url'] ?? ''), PHP_URL_HOST) ?: ''));
+    if (!$configured || ($host !== '' && !hash_equals($configured, $host))) {
+      throw new RuntimeException('CMS_HOST_MISMATCH');
+    }
   }
   return $config;
 }
