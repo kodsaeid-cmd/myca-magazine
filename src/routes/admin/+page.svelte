@@ -148,11 +148,11 @@
     catch (e) { error = e.message; }
   }
   function editorImageUrls(html) {
-    return (html || '').replace(/(<img\\b[^>]*\\bsrc=")([^"]+)(")/gi,
+    return (html || '').replace(/(<img\b[^>]*\bsrc=")([^"]+)(")/gi,
       (whole, start, url, end) => start + publicImageUrl(url) + end);
   }
   function originalImageUrls(html) {
-    return (html || '').replace(/(<img\\b[^>]*\\bsrc=")\\/api\\/image\\.php\\?p=([^"]+)(")/gi,
+    return (html || '').replace(/(<img\b[^>]*\bsrc=")\/api\/image\.php\?p=([^"]+)(")/gi,
       (whole, start, encoded, end) => {
         let path = '';
         try { path = decodeURIComponent(encoded.replaceAll('&amp;', '&')); } catch { return whole; }
