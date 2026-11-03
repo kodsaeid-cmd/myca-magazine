@@ -13,6 +13,8 @@ on:
       - '.github/workflows/production-cpanel.yml'
       - '.github/workflows/production-parspack-ftps.yml'
       - 'server/PRODUCTION-BLOG-MYCAAPP-DEPLOY.md'
+      - 'server/myca-config.production.example.php'
+      - 'static/api/bootstrap.php'
 
 permissions:
   contents: write
