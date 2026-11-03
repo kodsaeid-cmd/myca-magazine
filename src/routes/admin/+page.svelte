@@ -2,7 +2,7 @@
   import { onMount, onDestroy, tick } from 'svelte';
   import {
     LayoutDashboard, FileText, Image as ImageIcon, Search, LogOut, Plus, Save, Globe,
-    ArrowRight, Eye, Upload, RefreshCw, Bold, Italic, Heading2, Heading3,
+    ArrowRight, Eye, EyeOff, Upload, RefreshCw, Bold, Italic, Heading2, Heading3,
     List, ListOrdered, Quote, Undo2, Redo2, Table2, Link2, CheckCircle2,
     Clock3, ShieldCheck, ExternalLink, LockKeyhole, BookOpen, X, Menu, Users, LayoutTemplate
   } from '@lucide/svelte';
@@ -22,6 +22,10 @@
   let view = 'dashboard', navOpen = false, busy = false, notice = '', error = '';
   let articles = [], media = [], counts = {}, categories = {}, revisions = [], users = [];
   let newUserName = '', newUserEmail = '', newUserPassword = '', newUserRole = 'author';
+  let showLoginPassword = false, showSetupToken = false, showNewUserPassword = false;
+  let editUserId = 0, editUserName = '', editUserEmail = '', editUserRole = 'author', editUserActive = true;
+  let editUserPassword = '', editUserCurrentPassword = '', showEditUserPassword = false, showEditCurrentPassword = false;
+  let imageAudit = null, imageAuditLoading = false;
   let search = '', statusFilter = '', form = empty(), faqText = '';
   let editorHost, uploadInput, editor, editorLoading = false;
   let selectedImageAlt = '';
@@ -143,6 +147,53 @@
     try { users = (await request('users')).users; }
     catch (e) { error = e.message; }
   }
+  async function auditArticleImages() {
+    clearMessages(); imageAuditLoading = true;
+    try { imageAudit = await request('media-audit'); }
+    catch(e) { error = e.message; }
+    finally { imageAuditLoading = false; }
+  }
+  function beginUserEdit(item) {
+    clearMessages();
+    editUserId = Number(item.id);
+    editUserName = item.display_name;
+    editUserEmail = item.email;
+    editUserRole = item.role;
+    editUserActive = Number(item.active) === 1;
+    editUserPassword = '';
+    editUserCurrentPassword = '';
+    showEditUserPassword = false;
+    showEditCurrentPassword = false;
+  }
+  function cancelUserEdit() {
+    editUserId = 0;
+    editUserPassword = '';
+    editUserCurrentPassword = '';
+    showEditUserPassword = false;
+    showEditCurrentPassword = false;
+  }
+  async function saveUserEdit() {
+    if (!editUserId || busy) return;
+    clearMessages(); busy = true;
+    try {
+      const updated = await request('user-edit', {
+        method: 'POST', headers: {'Content-Type':'application/json'},
+        body: JSON.stringify({
+          id: editUserId, display_name: editUserName, email: editUserEmail,
+          role: editUserRole, active: editUserActive,
+          new_password: editUserPassword,
+          current_password: editUserCurrentPassword
+        })
+      });
+      if (Number(editUserId) === Number(user.id)) {
+        user = { ...user, display_name: editUserName, email: editUserEmail };
+      }
+      notice = updated.password_changed ? 'اطلاعات و رمز جدید کاربر ذخیره شد.' : 'اطلاعات کاربر به‌روزرسانی شد.';
+      cancelUserEdit();
+      await loadUsers();
+    } catch(e) { error = e.message; }
+    finally { busy = false; }
+  }
   async function createUser() {
     clearMessages();busy = true;
     try {
@@ -150,7 +201,7 @@
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ display_name: newUserName, email: newUserEmail, password: newUserPassword, role: newUserRole })
       });
-      newUserName = ''; newUserEmail = ''; newUserPassword = ''; newUserRole = 'author';
+      newUserName = ''; newUserEmail = ''; newUserPassword = ''; newUserRole = 'author'; showNewUserPassword = false;
       notice = 'کاربر جدید در پایگاه داده ایجاد شد.';
       await loadUsers();
     } catch (e) { error = e.message; }
@@ -173,6 +224,7 @@
     clearMessages();
     if (view === 'editor' && next !== 'editor') teardownEditor();
     view = next; navOpen = false;
+    if (next !== 'users') cancelUserEdit();
     if (next === 'articles') await loadArticles();
     if (next === 'media') await loadMedia();
     if (next === 'users' && user?.role === 'admin') await loadUsers();
@@ -331,10 +383,18 @@
         <p>مدیریت محتوای مجله مایکا، انتشار و سئو</p>
         {#if !initialized}
           <label>نام مدیر<input bind:value={authName} required placeholder="نام و نام خانوادگی" /></label>
-          <label>کلید راه‌اندازی محرمانه<input bind:value={setupToken} type="password" required autocomplete="off" placeholder="کلید فایل تنظیمات سرور" /></label>
+          <label>کلید راه‌اندازی محرمانه
+            <span class="cms-password-wrap"><input bind:value={setupToken} type={showSetupToken ? 'text' : 'password'} required autocomplete="off" placeholder="کلید فایل تنظیمات سرور" />
+              <button type="button" class="cms-password-toggle" aria-label={showSetupToken ? 'مخفی‌کردن کلید' : 'نمایش کلید'} aria-pressed={showSetupToken} title={showSetupToken ? 'مخفی‌کردن' : 'نمایش'} onclick={() => showSetupToken = !showSetupToken}>{#if showSetupToken}<EyeOff size={19}/>{:else}<Eye size={19}/>{/if}</button>
+            </span>
+          </label>
         {/if}
         <label>ایمیل<input type="email" bind:value={authEmail} required autocomplete="username" placeholder="email@example.com" dir="ltr" /></label>
-        <label>رمز عبور<input type="password" bind:value={authPassword} required autocomplete={!initialized ? 'new-password' : 'current-password'} minlength={!initialized ? 14 : undefined} /></label>
+        <label>رمز عبور
+          <span class="cms-password-wrap"><input type={showLoginPassword ? 'text' : 'password'} bind:value={authPassword} required autocomplete={!initialized ? 'new-password' : 'current-password'} minlength={!initialized ? 14 : undefined} />
+            <button type="button" class="cms-password-toggle" aria-label={showLoginPassword ? 'مخفی‌کردن رمز' : 'نمایش رمز'} aria-pressed={showLoginPassword} title={showLoginPassword ? 'مخفی‌کردن' : 'نمایش'} onclick={() => showLoginPassword = !showLoginPassword}>{#if showLoginPassword}<EyeOff size={19}/>{:else}<Eye size={19}/>{/if}</button>
+          </span>
+        </label>
         {#if error}<div class="cms-error">{error}</div>{/if}
         {#if notice}<div class="cms-success">{notice}</div>{/if}
         <button class="cms-primary full" type="submit" disabled={busy}>{busy ? 'در حال بررسی…' : !initialized ? 'ساخت مدیر اولیه' : 'ورود امن به پنل'}</button>
@@ -389,6 +449,19 @@
                 <p>پیش از نصب، پوشه ۱۰ تصویر را در مسیر <code>/media/editorial/</code> آپلود کن. کل دامنه آزمایشی dandoonii.ir همچنان Noindex باقی می‌ماند؛ آماده‌بودن متادیتا به معنی ایندکس‌شدن واقعی در این دامنه نیست.</p>
               </div>
             {/if}
+            <div class="cms-panel">
+              <div class="cms-panel-head"><h3>بررسی تصاویر مقالات</h3><button class="cms-outline" onclick={auditArticleImages} disabled={imageAuditLoading}><ImageIcon size={17}/> {imageAuditLoading ? 'در حال بررسی…' : 'اسکن فایل‌های تصاویر'}</button></div>
+              <p class="cms-help">تفاوت بین کاور مفقود روی هاست و نبود تصویر درون متن مقاله را جداگانه نشان می‌دهد.</p>
+              {#if imageAudit}
+                <p>از {imageAudit.total} مقاله منتشرشده، {imageAudit.missing_covers} مقاله کاور محلی گمشده/ثبت‌نشده دارند و {imageAudit.without_inline_images} مقاله تصویر درون‌متنی ندارند.</p>
+                {#if imageAudit.missing_covers > 0}
+                  <div class="cms-media-audit">{#each imageAudit.articles.filter((a) => !a.cover_url || (!a.cover_found && !a.cover_external)) as item (item.id)}
+                    <div><strong>{item.title}</strong><code dir="ltr">{item.cover_url || 'کاور ثبت نشده'}</code></div>
+                  {/each}</div>
+                  <p class="cms-help">تصاویر ده مقاله نخست باید دقیقاً در /media/editorial/ روی هاست قرار بگیرند. ده کاور بعدی در /media/editorial-more/ هستند.</p>
+                {/if}
+              {/if}
+            </div>
             <div class="cms-panel"><div class="cms-panel-head"><h3>مرکز انتشار</h3><button class="cms-link" onclick={() => openView('articles')}>فهرست مقالات <ArrowRight size={15}/></button></div><p>هر مطلب پس از انتشار با لینک مستقل در <a href="/stories/" target="_blank" rel="noopener noreferrer">بخش مقاله‌های پویا</a> و سایت‌مپ اختصاصی در دسترس است. این بخش به‌صورت HTML توسط PHP روی سرور رندر می‌شود.</p></div>
           {:else if view === 'articles'}
             <div class="cms-page-heading"><div><h2>آرشیو مقالات</h2><p>فهرست واقعی نوشته‌ها، وضعیت انتشار و آخرین ویرایش</p></div><button class="cms-primary" onclick={openNew}><Plus size={17}/> ایجاد مقاله</button></div>
@@ -445,7 +518,11 @@
               <form onsubmit={(e) => {e.preventDefault();createUser();}} class="cms-user-create">
                 <label class="cms-field">نام نمایشی<input bind:value={newUserName} required maxlength="120" placeholder="نام نویسنده"/></label>
                 <label class="cms-field">ایمیل<input bind:value={newUserEmail} dir="ltr" type="email" required placeholder="editor@example.com"/></label>
-                <label class="cms-field">رمز موقت امن<input bind:value={newUserPassword} type="password" required minlength="14" autocomplete="new-password" placeholder="حداقل ۱۴ کاراکتر"/></label>
+                <label class="cms-field">رمز موقت امن
+                  <span class="cms-password-wrap"><input bind:value={newUserPassword} type={showNewUserPassword ? 'text' : 'password'} required minlength="14" autocomplete="new-password" placeholder="حداقل ۱۴ کاراکتر"/>
+                    <button type="button" class="cms-password-toggle" aria-label={showNewUserPassword ? 'مخفی‌کردن رمز' : 'نمایش رمز'} aria-pressed={showNewUserPassword} onclick={() => showNewUserPassword = !showNewUserPassword}>{#if showNewUserPassword}<EyeOff size={19}/>{:else}<Eye size={19}/>{/if}</button>
+                  </span>
+                </label>
                 <label class="cms-field">نقش<select bind:value={newUserRole}><option value="author">نویسنده</option><option value="editor">سردبیر</option><option value="admin">مدیر کل</option></select></label>
                 <button class="cms-primary" type="submit" disabled={busy}><Plus size={17}/> ایجاد کاربر</button>
               </form>
@@ -457,9 +534,34 @@
                   <td><strong>{item.display_name}</strong></td><td dir="ltr">{item.email}</td>
                   <td><select class="cms-table-select" value={item.role} disabled={busy || Number(item.id) === Number(user.id)} onchange={(e) => updateUser(item.id,e.currentTarget.value,Number(item.active) === 1)}><option value="author">نویسنده</option><option value="editor">سردبیر</option><option value="admin">مدیر کل</option></select></td>
                   <td><span class={'cms-status ' + (Number(item.active) === 1 ? 'status-published' : 'status-archived')}>{Number(item.active) === 1 ? 'فعال' : 'غیرفعال'}</span></td>
-                  <td><button class="cms-link" disabled={busy || Number(item.id) === Number(user.id)} onclick={() => updateUser(item.id,item.role,Number(item.active) !== 1)}>{Number(item.active) === 1 ? 'غیرفعال‌سازی' : 'فعال‌سازی'}</button></td>
+                  <td><div class="cms-user-actions"><button class="cms-outline" disabled={busy} onclick={() => beginUserEdit(item)}>ویرایش حساب</button><button class="cms-link" disabled={busy || Number(item.id) === Number(user.id)} onclick={() => updateUser(item.id,item.role,Number(item.active) !== 1)}>{Number(item.active) === 1 ? 'غیرفعال‌سازی' : 'فعال‌سازی'}</button></div></td>
                 </tr>{:else}<tr><td colspan="5" class="cms-empty">کاربری ثبت نشده است.</td></tr>{/each}
               </tbody></table></div>
+              {#if editUserId}
+                <form class="cms-user-edit cms-panel" onsubmit={(e) => {e.preventDefault(); saveUserEdit();}}>
+                  <div class="cms-panel-head"><h3>ویرایش حساب کاربری</h3><button type="button" class="cms-outline" onclick={cancelUserEdit}>انصراف <X size={15}/></button></div>
+                  <div class="cms-user-create">
+                    <label class="cms-field">نام نمایشی<input bind:value={editUserName} required maxlength="120" /></label>
+                    <label class="cms-field">ایمیل<input type="email" dir="ltr" bind:value={editUserEmail} required /></label>
+                    <label class="cms-field">نقش<select bind:value={editUserRole} disabled={Number(editUserId) === Number(user.id)}><option value="author">نویسنده</option><option value="editor">سردبیر</option><option value="admin">مدیر کل</option></select></label>
+                    <label class="cms-field cms-user-active"><input type="checkbox" bind:checked={editUserActive} disabled={Number(editUserId) === Number(user.id)} /> حساب فعال باشد</label>
+                    <label class="cms-field">رمز جدید (اختیاری)
+                      <span class="cms-password-wrap"><input bind:value={editUserPassword} type={showEditUserPassword ? 'text' : 'password'} minlength="14" maxlength="256" autocomplete="new-password" placeholder="خالی بگذار = بدون تغییر رمز"/>
+                        <button type="button" class="cms-password-toggle" aria-label={showEditUserPassword ? 'مخفی‌کردن رمز جدید' : 'نمایش رمز جدید'} aria-pressed={showEditUserPassword} onclick={() => showEditUserPassword = !showEditUserPassword}>{#if showEditUserPassword}<EyeOff size={19}/>{:else}<Eye size={19}/>{/if}</button>
+                      </span>
+                    </label>
+                    {#if Number(editUserId) === Number(user.id) && editUserPassword}
+                      <label class="cms-field">رمز فعلی خودت برای تأیید تغییر
+                        <span class="cms-password-wrap"><input bind:value={editUserCurrentPassword} type={showEditCurrentPassword ? 'text' : 'password'} required autocomplete="current-password"/>
+                          <button type="button" class="cms-password-toggle" aria-label={showEditCurrentPassword ? 'مخفی‌کردن رمز فعلی' : 'نمایش رمز فعلی'} aria-pressed={showEditCurrentPassword} onclick={() => showEditCurrentPassword = !showEditCurrentPassword}>{#if showEditCurrentPassword}<EyeOff size={19}/>{:else}<Eye size={19}/>{/if}</button>
+                        </span>
+                      </label>
+                    {/if}
+                    <button class="cms-primary" type="submit" disabled={busy}><Save size={17}/> ذخیره تغییرات</button>
+                  </div>
+                  <p class="cms-help">برای تغییر رمز دیگر کاربران، مدیر کل می‌تواند رمز تازه تعیین کند. برای تغییر رمز حساب خودت، رمز فعلی نیز لازم است. هیچ رمزی از سرور قابل مشاهده یا بازیابی نیست.</p>
+                </form>
+              {/if}
             </div>
           {:else if view === 'layout' && canPublish}
             <EditorialLayoutStudio {request} {categories}/>
