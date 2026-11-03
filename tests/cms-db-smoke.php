@@ -177,4 +177,44 @@ if(!is_file(__DIR__.'/../static/vazir-local.css')||
   throw new RuntimeException('Stable Vazir font CSS missing');
 echo "PASS: 20 editable CMS articles, safe additive import, expanded real homepage and Vazir styles.\\n";
 
+
+// Twenty-article photographic enhancement, transaction safety and idempotency.
+require_once __DIR__.'/../static/api/editorial-visuals.php';
+$visualManifest=cms_editorial_visual_items();
+if(count($visualManifest)!==20)throw new RuntimeException('Must cover all twenty curated slugs');
+$createdImages=[];
+$dummy=imagecreatetruecolor(96,72);
+$testRoot=realpath(__DIR__.'/../static');
+foreach(cms_editorial_visual_library() as $photo) {
+  $target=$testRoot.$photo[0];
+  if(!is_file($target)) {
+    if(!is_dir(dirname($target)))mkdir(dirname($target),0755,true);
+    imagejpeg($dummy,$target,75);
+    $createdImages[]=$target;
+  }
+}
+imagedestroy($dummy);
+$dry=cms_editorial_visuals_install($db,$id,true);
+if($dry['updated_articles']!==20||$dry['images_added']!==60)
+  throw new RuntimeException('Visual dry-run must report sixty new inline images');
+$pre=$db->query("SELECT body_html FROM cms_articles WHERE slug='choose-elderly-caregiver-at-home'")->fetchColumn();
+if(str_contains($pre,'<img'))throw new RuntimeException('Dry run mutated article content');
+$done=cms_editorial_visuals_install($db,$id,false);
+if($done['updated_articles']!==20||$done['images_added']!==60)
+  throw new RuntimeException('Bulk visual importer did not update all articles');
+$twice=cms_editorial_visuals_install($db,$id,false);
+if($twice['updated_articles']!==0||$twice['already_has_images']!==20)
+  throw new RuntimeException('Bulk photo importer is not idempotent');
+$updatedBody=$db->query("SELECT body_html FROM cms_articles WHERE slug='choose-elderly-caregiver-at-home'")->fetchColumn();
+if(substr_count($updatedBody,'<img')!==3 ||
+   !str_contains($updatedBody,'مطالب مرتبط در مجله مایکا') ||
+   !str_contains(cms_render_inline_images($updatedBody),'/api/image.php?p=%2Fmedia%2F'))
+  throw new RuntimeException('Inline images missing, text lost or PHP URLs not rendered');
+$q=$db->prepare('SELECT COUNT(*) FROM cms_revisions WHERE article_id=?');$q->execute([$aid]);
+if((int)$q->fetchColumn()<1)throw new RuntimeException('Article revision persistence failed after bulk visuals');
+foreach($createdImages as $path)unlink($path);
+if(cms_public_image_url('/media/editorial/cover-01-caregiver-selection.webp')!=='/api/image.php?p=%2Fmedia%2Feditorial%2Fcover-01-caregiver-selection.webp')
+  throw new RuntimeException('Photo PHP URL mapping is incorrect');
+echo "PASS: 20 source-backed stories receive 60 photos in sections, revision backup, idempotent bulk import and secure image URLs.\\n";
+
 ob_end_flush();
