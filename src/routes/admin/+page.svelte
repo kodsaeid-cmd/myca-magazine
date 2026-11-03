@@ -147,6 +147,18 @@
     try { users = (await request('users')).users; }
     catch (e) { error = e.message; }
   }
+  function editorImageUrls(html) {
+    return (html || '').replace(/(<img\\b[^>]*\\bsrc=")([^"]+)(")/gi,
+      (whole, start, url, end) => start + publicImageUrl(url) + end);
+  }
+  function originalImageUrls(html) {
+    return (html || '').replace(/(<img\\b[^>]*\\bsrc=")\\/api\\/image\\.php\\?p=([^"]+)(")/gi,
+      (whole, start, encoded, end) => {
+        let path = '';
+        try { path = decodeURIComponent(encoded.replaceAll('&amp;', '&')); } catch { return whole; }
+        return publicImageUrl(path).startsWith('/api/image.php?p=') ? start + path + end : whole;
+      });
+  }
   function publicImageUrl(url) {
     if (typeof url !== 'string') return '';
     const safe = /^\/(?:media\/(?:editorial|editorial-more|editorial-inline|uploads)|media-check)\/[A-Za-z0-9_./-]+\.(?:jpe?g|png|webp)$/.test(url);
@@ -309,8 +321,8 @@
           TextAlign.configure({ types: ['paragraph', 'heading'] })
         ],
         editorProps: { attributes: { class: 'cms-prosemirror', dir: 'rtl', spellcheck: 'true' } },
-        content: form.body_html || '<p></p>',
-        onUpdate: ({ editor: instance }) => { form.body_html = instance.getHTML(); }
+        content: editorImageUrls(form.body_html || '<p></p>'),
+        onUpdate: ({ editor: instance }) => { form.body_html = originalImageUrls(instance.getHTML()); }
       });
     } catch (e) { error = 'ویرایشگر بارگذاری نشد: ' + e.message; }
     finally { editorLoading = false; }
@@ -350,7 +362,7 @@
   async function saveArticle(status) {
     clearMessages(); busy = true;
     try {
-      const payload = { ...form, status, body_html: editor?.getHTML() || form.body_html, faq_json: parseFaq() };
+      const payload = { ...form, status, body_html: originalImageUrls(editor?.getHTML() || form.body_html), faq_json: parseFaq() };
       const result = await request('save', {
         method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload)
       });
@@ -385,7 +397,7 @@
       const r = await request('upload', { method: 'POST', body });
       if (view === 'editor') {
         if (!form.cover_url) form.cover_url = r.path;
-        if (editor) editor.chain().focus().setImage({ src: r.path, alt: r.alt }).run();
+        if (editor) editor.chain().focus().setImage({ src: publicImageUrl(r.path), alt: r.alt }).run();
       }
       await loadMedia();
       notice = 'تصویر روی سرور ذخیره شد.';
