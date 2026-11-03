@@ -6,11 +6,13 @@ declare(strict_types=1);
 $webRoot=dirname(__DIR__);
 $source=(string)($_GET['p']??'');
 if (strlen($source)>240 ||
-    !preg_match('~^/media/(?:editorial|editorial-more|editorial-inline|uploads)/[A-Za-z0-9_./-]+\\.(?:jpg|jpeg|png|webp)$~D',$source) ||
+    !preg_match('~^/(?:media/(?:editorial|editorial-more|editorial-inline|uploads)|media-check)/[A-Za-z0-9_./-]+\\.(?:jpg|jpeg|png|webp)$~D',$source) ||
     str_contains($source,'..') || str_contains($source,'//')) {
   http_response_code(404); exit;
 }
-$base=realpath($webRoot.'/media');
+$allowedBase= str_starts_with($source,'/media-check/')
+  ? $webRoot.'/media-check' : $webRoot.'/media';
+$base=realpath($allowedBase);
 $path=realpath($webRoot.$source);
 if (!$base||!$path||!str_starts_with($path,$base.DIRECTORY_SEPARATOR)||!is_file($path)||!is_readable($path)) {
   http_response_code(404); exit;
