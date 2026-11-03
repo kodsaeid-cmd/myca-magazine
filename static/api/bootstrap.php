@@ -135,6 +135,27 @@ function cms_safe_url(string $url,bool $allowRelative=true): string {
       && !str_contains($url,"\0") && !preg_match('/[\r\n<>]/',$url)) return $url;
   return '';
 }
+// Serve first-party media through our PHP image endpoint. Some shared hosts
+// allow PHP requests but block or mis-type direct WebP files. Preserve other
+// validated URLs unmodified; do not proxy arbitrary external destinations.
+function cms_public_image_url(string $url): string {
+  $valid=cms_safe_url($url);
+  if ($valid==='' || !str_starts_with($valid,'/media/')) return $valid;
+  if (str_contains($valid,'..') || str_contains($valid,'//') ||
+      !preg_match('~^/media/(?:editorial|editorial-more|editorial-inline|uploads)/[A-Za-z0-9_./-]+\\.(?:jpg|jpeg|png|webp)$~D',$valid)) return '';
+  return '/api/image.php?p='.rawurlencode($valid);
+}
+function cms_render_inline_images(string $html): string {
+  // Articles are sanitized with cms_html() on write. Rewrite only the URL
+  // of existing IMG tags; preserve paragraphs, alt text and editor markup.
+  return (string)preg_replace_callback(
+    '~(<img\\b[^>]*\\bsrc=")([^"]+)(")~i',
+    static fn(array $m)=>$m[1].htmlspecialchars(
+      cms_public_image_url(html_entity_decode($m[2],ENT_QUOTES|ENT_HTML5,'UTF-8')),
+      ENT_QUOTES|ENT_SUBSTITUTE,'UTF-8').$m[3],
+    $html
+  );
+}
 function cms_html(string $html): string {
   if (strlen($html)>700000) cms_error('متن مقاله بیش از حد بزرگ است.',413);
   if (trim($html)==='') return '';
