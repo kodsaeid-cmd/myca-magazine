@@ -116,3 +116,18 @@ body:has(.cms-shell) .site-shell{min-height:100vh}
 .cms-user-create .cms-primary{width:max-content}
 .cms-table-select{min-width:120px;background:#fff;border:1px solid var(--cms-line);border-radius:9px;padding:8px;color:#33566f}
 @media(max-width:700px){.cms-user-create{grid-template-columns:1fr}}
+
+/* Login / account management: accessible, keyboard-friendly password disclosure. */
+.cms-password-wrap{position:relative;display:block;width:100%;margin-top:5px}
+.cms-password-wrap input{width:100%;padding-left:47px!important}
+.cms-password-toggle{position:absolute;left:7px;top:50%;transform:translateY(-50%);width:36px;height:36px;border:1px solid transparent;border-radius:9px;background:transparent;color:#476b80;display:flex;align-items:center;justify-content:center;cursor:pointer}
+.cms-password-toggle:hover{background:#ebf6fb;border-color:#c8e9f2;color:#005474}
+.cms-password-toggle:focus-visible{outline:3px solid #fcb400;outline-offset:1px}
+.cms-user-actions{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.cms-user-edit{margin-top:18px!important;background:#f7fbfd;border:1px solid #c5e2ef}
+.cms-user-active{display:flex;align-items:center;gap:10px;padding-bottom:11px}
+.cms-user-active input{accent-color:#00a4d4;width:18px;height:18px}
+.cms-media-audit{display:grid;gap:8px;max-height:300px;overflow-y:auto;margin-top:12px}
+.cms-media-audit>div{border:1px solid #e2eaf0;border-radius:10px;padding:11px;display:grid;gap:5px;background:#fff}
+.cms-media-audit strong{font-size:12px}
+.cms-media-audit code{direction:ltr;text-align:left;display:block;overflow-wrap:anywhere;font-size:11px;color:#7b5260}
