@@ -61,6 +61,22 @@ Test each directly on production HTTPS (no search index needed until launch):
 - The `/api/index.php?route=media-audit` endpoint requires an authenticated admin. It does not expose filesystem paths to visitors or mutate files.
 - Do not log into a public site on HTTP or with an untrusted/self-signed TLS identity; resolve CA/CAA and HTTPS before working with live credentials.
 
+## Batch images: all twenty editorial guides
+
+The original server had 21 published articles; the twenty source-backed editorial guides did not include inline images. All covers were reported on disk, but some browsers could not load their direct URLs.
+
+**Fix:** Public homepage, article list, story cover and in-article photos now use the validated first-party PHP transport `/api/image.php?p=<URLENCODED_MEDIA_PATH>`, restricted to verified JPG, PNG and WebP under `/media/` and `/media-check/`.
+
+After extracting a fresh production ZIP into `/home/<account>/blog.mycaapp.ir`:
+1. Do not delete `media/editorial/`, `media/uploads/` or `.well-known/`; copy the ten original editorial covers from the staging site's `media/editorial/` if missing. The additional ten covers and child-themed local JPGs are compiled into the production package.
+2. On HTTPS in **MYCA Content Studio → Dashboard → بررسی تصاویر مقالات**, run `اسکن فایل‌های تصاویر` to confirm the cover files are valid images, not merely existing paths.
+3. As an authenticated admin, click **افزودن تصاویر به تمام ۲۰ مقاله اصلی** once. The UI performs a dry-run preflight and then a transactional, idempotent update; it inserts three contextual first-party images into the body of each of the 20 curated original articles, keeping any article that already contains an image intact. Images come from the existing MYCA photo library; this is **60 image placements**, not 60 independently commissioned unique photographs. The 21st custom article remains untouched.
+4. Article snapshots are saved to `cms_revisions` before each update. No schema migration is needed.
+5. Verify an example in the browser: `/api/image.php?p=%2Fmedia%2Feditorial%2Fcover-01-caregiver-selection.webp` must return a renderable image with an image Content-Type. Then open `/stories/choose-elderly-caregiver-at-home/` and refresh without cache.
+6. If the one-click step reports `INLINE_IMAGE_FILE_MISSING_OR_INVALID`, first restore the exact asset at the named path. Never force replacement of absent or corrupt images.
+
+Public HTTPS remains important for credentials and admin operations. The first-party PHP gateway does not resolve a self-signed SSL certificate or DNS CAA restriction.
+
 ## 6. GitHub → ParsPack continuous deployment (after first release)
 
 The existing `.github/workflows/parspack-ftps.yml` is for staging ONLY.
