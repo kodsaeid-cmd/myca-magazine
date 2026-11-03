@@ -188,7 +188,13 @@
       if (Number(editUserId) === Number(user.id)) {
         user = { ...user, display_name: editUserName, email: editUserEmail };
       }
-      notice = updated.password_changed ? 'اطلاعات و رمز جدید کاربر ذخیره شد.' : 'اطلاعات کاربر به‌روزرسانی شد.';
+      if (updated.password_changed && Number(editUserId) === Number(user.id)) {
+        cancelUserEdit();
+        await logout();
+        notice = 'رمز حساب مدیر تغییر کرد. نشست قبلی باطل شد؛ با رمز جدید دوباره وارد شو.';
+        return;
+      }
+      notice = updated.password_changed ? 'اطلاعات و رمز جدید کاربر ذخیره شد؛ نشست‌های قبلی او باطل شدند.' : 'اطلاعات کاربر به‌روزرسانی شد.';
       cancelUserEdit();
       await loadUsers();
     } catch(e) { error = e.message; }
