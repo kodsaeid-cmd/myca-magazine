@@ -140,7 +140,7 @@ function cms_safe_url(string $url,bool $allowRelative=true): string {
 // validated URLs unmodified; do not proxy arbitrary external destinations.
 function cms_public_image_url(string $url): string {
   $valid=cms_safe_url($url);
-  if ($valid==='' || !str_starts_with($valid,'/media/')) return $valid;
+  if ($valid==='' || (!str_starts_with($valid,'/media/') && !str_starts_with($valid,'/media-check/'))) return $valid;
   if (str_contains($valid,'..') || str_contains($valid,'//') ||
       !preg_match('~^/(?:media/(?:editorial|editorial-more|editorial-inline|uploads)|media-check)/[A-Za-z0-9_./-]+\\.(?:jpg|jpeg|png|webp)$~D',$valid)) return '';
   return '/api/image.php?p='.rawurlencode($valid);
