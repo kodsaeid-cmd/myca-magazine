@@ -11,7 +11,8 @@ try {
   $canonical=$a['canonical_url']?:$origin.'/stories/'.$slug.'/';
   $title=$a['meta_title']?:$a['title'].' | مجله مایکا';
   $description=$a['meta_description']?:$a['excerpt'];
-  $image=$a['cover_url']?(str_starts_with($a['cover_url'],'/')?$origin.$a['cover_url']:$a['cover_url']):'';
+  $cover=cms_public_image_url((string)($a['cover_url']??''));
+  $image=$cover?(str_starts_with($cover,'/')?$origin.$cover:$cover):'';
   $faq=json_decode($a['faq_json']??'[]',true)?:[];
   $schema=['@context'=>'https://schema.org','@type'=>'Article','headline'=>$a['title'],
     'description'=>$description,'datePublished'=>gmdate('c',strtotime($a['published_at'].' UTC')),
@@ -49,7 +50,7 @@ try {
     <div class="byline"><?= $h($a['author']) ?> · <time datetime="<?= $h($a['published_at']) ?>"><?= $h(substr($a['published_at'],0,10)) ?></time></div>
     </div>
     <?php if($image): ?><figure class="cover"><img src="<?= $h($image) ?>" alt="<?= $h($a['cover_alt']?:$a['title']) ?>" loading="eager"></figure><?php endif; ?>
-    <div class="prose"><?= $a['body_html'] /* sanitized on write with DOM allowlist */ ?></div>
+    <div class="prose"><?= cms_render_inline_images($a['body_html']) /* sanitized on write; first-party image delivery */ ?></div>
     <?php if($faqSchema): ?><section class="faq"><h2>پرسش‌های متداول</h2><?php foreach($faq as $f): ?><details><summary><?= $h($f['question']) ?></summary><p><?= $h($f['answer']) ?></p></details><?php endforeach; ?></section><?php endif; ?>
     <div class="end-cta"><h3>برای مراقبت مطمئن‌تر همراه شما هستیم</h3><p>برای دریافت خدمات مراقبتی مایکا با ما در ارتباط باشید.</p><a href="tel:41124">تماس با ۴۱۱۲۴</a></div>
     </article></main>
