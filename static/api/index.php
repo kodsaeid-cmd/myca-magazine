@@ -221,6 +221,81 @@ try {
     $users=$db->query('SELECT id,email,display_name,role,active,created_at,last_login_at FROM cms_users ORDER BY id ASC LIMIT 100')->fetchAll();
     cms_json(['ok'=>true,'users'=>$users]);
   }
+  // Admin-only asset audit: distinguish missing on-disk covers from articles
+  // that have no inline media in their editorial HTML.
+  if ($route==='media-audit'&&$method==='GET') {
+    cms_user('admin');
+    $webRoot=dirname(__DIR__);
+    $q=$db->query("SELECT id,slug,title,cover_url,body_html FROM cms_articles WHERE status='published' ORDER BY published_at DESC,id DESC LIMIT 300");
+    $entries=[];$missing=0;$noInline=0;$covers=0;
+    foreach($q->fetchAll() as $article){
+      $cover=(string)$article['cover_url'];
+      $external=$cover!=='' && !str_starts_with($cover,'/');
+      $onDisk=false;
+      if($cover!=='' && !$external && preg_match('~^/media/[a-zA-Z0-9_./-]+\\.(?:jpg|jpeg|png|webp)$~',$cover)
+        && !str_contains($cover,'..')){
+        $file=$webRoot.$cover;
+        $onDisk=is_file($file) && filesize($file)>100;
+      }
+      $inlineCount=preg_match_all('~<img\\b~i',(string)$article['body_html']);
+      if(!$inlineCount)$noInline++;
+      if($cover!=='')$covers++;
+      if($cover===''||(!$external&&!$onDisk))$missing++;
+      $entries[]=[
+        'id'=>(int)$article['id'],'slug'=>$article['slug'],'title'=>$article['title'],
+        'cover_url'=>$cover,'cover_found'=>$onDisk,'cover_external'=>$external,
+        'inline_images'=>(int)$inlineCount
+      ];
+    }
+    cms_json(['ok'=>true,'total'=>count($entries),'with_covers'=>$covers,
+      'missing_covers'=>$missing,'without_inline_images'=>$noInline,'articles'=>$entries]);
+  }
+
+  // Editing existing accounts is explicitly restricted to the current admin.
+  // Changing your OWN password also requires the current password.
+  // Other users' password resets require admin session + CSRF and are audited.
+  if ($route==='user-edit'&&$method==='POST') {
+    cms_csrf();$admin=cms_user('admin');$data=cms_input();
+    $id=(int)($data['id']??0);
+    $name=cms_clean_text($data['display_name']??'',120);
+    $email=filter_var(strtolower(trim((string)($data['email']??''))),FILTER_VALIDATE_EMAIL);
+    $role=cms_clean_text($data['role']??'',20);
+    $active=!empty($data['active'])?1:0;
+    $password=(string)($data['new_password']??'');
+    if($id<1||$name===''||!$email||!in_array($role,['admin','editor','author'],true))
+      cms_error('نام، ایمیل یا نقش کاربر معتبر نیست.');
+    if($password!=='' && (strlen($password)<14 || strlen($password)>256))
+      cms_error('رمز جدید باید بین ۱۴ تا ۲۵۶ کاراکتر باشد.');
+    if($id===(int)$admin['id']&&($role!=='admin'||$active!==1))
+      cms_error('نمی‌توانی حساب مدیر خودت را غیرفعال یا تنزل نقش بدهی.',403);
+    $db->beginTransaction();
+    try {
+      $q=$db->prepare('SELECT id,role,active,password_hash FROM cms_users WHERE id=? FOR UPDATE');
+      $q->execute([$id]);$before=$q->fetch();
+      if(!$before){$db->rollBack();cms_error('کاربر یافت نشد.',404);}
+      if($before['role']==='admin'&&(int)$before['active']===1&&($role!=='admin'||$active!==1)){
+        $n=(int)$db->query("SELECT COUNT(*) FROM cms_users WHERE role='admin' AND active=1")->fetchColumn();
+        if($n<2){$db->rollBack();cms_error('آخرین مدیر فعال را نمی‌توان غیرفعال کرد.',403);}
+      }
+      if($password!=='' && $id===(int)$admin['id']){
+        $current=(string)($data['current_password']??'');
+        if(!password_verify($current,(string)$before['password_hash'])){
+          $db->rollBack();cms_error('برای تغییر رمز خودت، رمز فعلی را درست وارد کن.',403);
+        }
+      }
+      $hash=$password!==''?password_hash($password,PASSWORD_DEFAULT):null;
+      try {
+        $q=$db->prepare('UPDATE cms_users SET display_name=?,email=?,role=?,active=?,password_hash=COALESCE(?,password_hash) WHERE id=?');
+        $q->execute([$name,$email,$role,$active,$hash,$id]);
+      }catch(PDOException $e){
+        if($e->getCode()==='23000'){$db->rollBack();cms_error('این ایمیل قبلاً برای کاربر دیگری ثبت شده است.',409);}
+        throw $e;
+      }
+      $db->commit();
+    }catch(Throwable $e){if($db->inTransaction())$db->rollBack();throw $e;}
+    cms_log((int)$admin['id'],$password!==''?'update-password':'update','user',$id);
+    cms_json(['ok'=>true,'id'=>$id,'password_changed'=>$password!=='']);
+  }
   if ($route==='user-create'&&$method==='POST') {
     cms_csrf();$admin=cms_user('admin');$data=cms_input();
     $email=filter_var(strtolower(trim((string)($data['email']??''))),FILTER_VALIDATE_EMAIL);
