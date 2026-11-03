@@ -13,12 +13,16 @@ function cms_config(): array {
   // cPanel production root: /home/<account>/blog.mycaapp.ir
   // Both configurations MUST live outside their public document roots.
   $siteRoot = dirname(__DIR__);
-  $accountRoot = dirname($siteRoot);
-  $path = $accountRoot . '/myca-magazine-config.php';
-  if (basename($siteRoot) === 'blog.mycaapp.ir') {
-    // Fail closed if production credentials have not been provisioned.
-    $path = $accountRoot . '/myca-magazine-config-production.php';
-  }
+  $parentRoot = dirname($siteRoot);
+  // cPanel frequently restricts addon-domain roots to public_html/<domain>.
+  // In either layout, private config must live in the account's HOME, never
+  // inside public_html (where it might be downloaded as a public file).
+  $accountRoot = basename($parentRoot) === 'public_html'
+    ? dirname($parentRoot) : $parentRoot;
+  $isProduction = basename($siteRoot) === 'blog.mycaapp.ir';
+  $path = $accountRoot . ($isProduction
+    ? '/myca-magazine-config-production.php'
+    : '/myca-magazine-config.php');
   // Optional explicit override for isolated containers and named vhosts.
   if (getenv('MYCA_CMS_CONFIG_PATH')) $path = (string)getenv('MYCA_CMS_CONFIG_PATH');
   // CLI integration tests use their own isolated MySQL.
