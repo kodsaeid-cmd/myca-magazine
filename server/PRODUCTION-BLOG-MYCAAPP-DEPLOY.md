@@ -5,7 +5,7 @@
 ## 1. DNS + cPanel
 
 1. DNS: `blog.mycaapp.ir` must resolve to the verified **public IPv4 of our own ParsPack host**. Do not use an unverified IP or change the parent's NS records.
-2. cPanel > Domains: add `blog.mycaapp.ir` with **Share document root OFF**. Set independent root to `/home/<cpanel-account>/blog.mycaapp.ir` (replace placeholder with actual home path). Never point it to staging `public_html`.
+2. cPanel > Domains: add `blog.mycaapp.ir` with **Share document root OFF**. Set an independent root, typically `/home/<cpanel-account>/public_html/blog.mycaapp.ir` on current cPanel or `/home/<cpanel-account>/blog.mycaapp.ir` when the host permits it. Do **not** share the staging document root itself (`/home/<cpanel-account>/public_html`). Record the exact root shown after creation.
 3. Verify DNS resolves, issue and test a valid HTTPS certificate for the full hostname, and enable Force HTTPS after the certificate works.
 4. The Apache vhost must serve PHP and honor `.htaccess` rewrites (mod_rewrite) and `DirectoryIndex index.php`.
 
@@ -22,7 +22,7 @@
 - Copy `server/myca-config.production.example.php` OUTSIDE the document root to `/home/<cpanel-account>/myca-magazine-config-production.php`.
 - Set production-only `db_host`, `db_name`, `db_user`, `db_password`, a random `session_secret`, and `site_url = https://blog.mycaapp.ir`.
 - Never add the live configuration, SQL dumps, credentials, or session tokens to GitHub.
-- The backend looks for the private production file when the production document-root folder is named **exactly** `blog.mycaapp.ir`. For a different folder name use the server environment variable `MYCA_CMS_CONFIG_PATH` pointing to an absolute private config path.
+- The backend looks for the private production file under the account home when the production document-root folder is named **exactly** `blog.mycaapp.ir`, including the default `public_html/blog.mycaapp.ir` layout. For a different folder name use the server environment variable `MYCA_CMS_CONFIG_PATH` pointing to an absolute private config path.
 - The PHP backend rejects requests whose `Host` does not match the configured `site_url`. The public ZIP also contains an Apache Host guard.
 - Existing staging remains at `/home/<cpanel-account>/public_html` and uses `/home/<cpanel-account>/myca-magazine-config.php`.
 
