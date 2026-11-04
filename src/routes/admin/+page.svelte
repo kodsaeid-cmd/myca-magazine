@@ -483,37 +483,6 @@
               <div class="cms-stat"><span><BookOpen size={19}/></span><strong>{Number(counts.draft || 0).toLocaleString('fa-IR')}</strong><small>پیش‌نویس</small></div>
             </div>
             <div class="cms-panel cms-welcome"><div><span class="cms-overline">EDITORIAL WORKFLOW</span><h2>از ایده تا مقاله قابل ایندکس</h2><p>ایجاد مقاله ← ویرایش تصویری ← تنظیم SEO ← بررسی سردبیر ← انتشار HTML و Sitemap</p><button class="cms-primary" onclick={openNew}><Plus size={18}/> شروع نوشتن</button></div><div class="cms-welcome-icon"><BookOpen size={80}/></div></div>
-            {#if user.role === 'admin'}
-              <div class="cms-panel">
-                <div class="cms-panel-head"><h3>گسترش مجله به ۲۰ مقاله</h3><button class="cms-primary" onclick={installMoreEditorialArticles} disabled={busy}><BookOpen size={18}/> افزودن ۱۰ مقاله جدید و تکمیل ویترین</button></div>
-                <p>۱۰ راهنمای تازه درباره ترخیص از بیمارستان، گزارش مراقب، زخم فشاری، خواب، ارتباط اجتماعی، فعالیت سالمند، دمانس، سلامت دهان و مراقبت کودک. همه از دیتابیس قابل ویرایش‌اند؛ تصاویر از پوشه محلی سایت بارگذاری می‌شوند. این عملیات سکشن «تازه‌ترین خواندنی‌ها» را تا ۱۳ کارت گسترش می‌دهد و چیدمان قبلی را در تاریخچه نگه می‌دارد.</p>
-              </div>
-            {/if}
-            {#if user.role === 'admin'}
-              <div class="cms-panel">
-                <div class="cms-panel-head"><h3>بسته ۱۰ مقاله تخصصی مایکا</h3><button class="cms-primary" onclick={installEditorialArticles} disabled={busy}><BookOpen size={18}/> نصب مقاله‌ها و جایگزینی ویترین</button></div>
-                <p>مجموعه نخست مجله شامل ۱۰ راهنمای اصلی مراقبت سالمند با متن کامل، لینک به منابع معتبر، تصویر اختصاصی، متای سئو و پرسش‌های متداول است. با نصب، مقاله‌ها در MySQL منتشر می‌شوند و قابلیت ویرایششان از «مدیریت مقالات» باقی می‌ماند. ویترین فعلی با چیدمان ۴ + ۳ + ۳ مقاله جایگزین می‌شود و نسخه قبلی در تاریخچه چیدمان حفظ خواهد شد.</p>
-                <p>پیش از نصب، پوشه ۱۰ تصویر را در مسیر <code>/media/editorial/</code> آپلود کن. کل دامنه آزمایشی dandoonii.ir همچنان Noindex باقی می‌ماند؛ آماده‌بودن متادیتا به معنی ایندکس‌شدن واقعی در این دامنه نیست.</p>
-              </div>
-            {/if}
-            <div class="cms-panel">
-              <div class="cms-panel-head"><h3>بررسی تصاویر مقالات</h3><button class="cms-outline" onclick={auditArticleImages} disabled={imageAuditLoading || busy}><ImageIcon size={17}/> {imageAuditLoading ? 'در حال بررسی…' : 'اسکن فایل‌های تصاویر'}</button></div>
-              {#if user.role === 'admin'}
-                <button class="cms-primary" onclick={installAllInlineImages} disabled={busy}><ImageIcon size={17}/> {busy ? 'در حال آماده‌سازی تصاویر…' : 'افزودن تصاویر به تمام ۲۰ مقاله اصلی'}</button>
-                <p class="cms-help">با یک کلیک پس از بررسی فایل‌ها، حداکثر ۶۰ تصویر مرتبط از کتابخانه مایکا بین بخش‌های مقاله درج می‌شود. مقالات دارای تصویر فعلی بدون تغییر می‌مانند.</p>
-              {/if}
-              <p class="cms-help">تفاوت بین کاور مفقود روی هاست و نبود تصویر درون متن مقاله را جداگانه نشان می‌دهد.</p>
-              {#if imageAudit}
-                <p>از {imageAudit.total} مقاله منتشرشده، {imageAudit.missing_covers} مقاله کاور محلی گمشده/ثبت‌نشده دارند و {imageAudit.without_inline_images} مقاله تصویر درون‌متنی ندارند.</p>
-                {#if imageAudit.missing_covers > 0}
-                  <div class="cms-media-audit">{#each imageAudit.articles.filter((a) => !a.cover_url || (!a.cover_found && !a.cover_external)) as item (item.id)}
-                    <div><strong>{item.title}</strong><code dir="ltr">{item.cover_url || 'کاور ثبت نشده'}</code></div>
-                  {/each}</div>
-                  <p class="cms-help">تصاویر ده مقاله نخست باید دقیقاً در /media/editorial/ روی هاست قرار بگیرند. ده کاور بعدی در /media/editorial-more/ هستند.</p>
-                {/if}
-              {/if}
-            </div>
-            <div class="cms-panel"><div class="cms-panel-head"><h3>مرکز انتشار</h3><button class="cms-link" onclick={() => openView('articles')}>فهرست مقالات <ArrowRight size={15}/></button></div><p>هر مطلب پس از انتشار با لینک مستقل در <a href="/stories/" target="_blank" rel="noopener noreferrer">بخش مقاله‌های پویا</a> و سایت‌مپ اختصاصی در دسترس است. این بخش به‌صورت HTML توسط PHP روی سرور رندر می‌شود.</p></div>
           {:else if view === 'articles'}
             <div class="cms-page-heading"><div><h2>آرشیو مقالات</h2><p>فهرست واقعی نوشته‌ها، وضعیت انتشار و آخرین ویرایش</p></div><button class="cms-primary" onclick={openNew}><Plus size={17}/> ایجاد مقاله</button></div>
             <div class="cms-panel"><div class="cms-filters"><div class="cms-search"><Search size={18}/><input bind:value={search} placeholder="عنوان یا اسلاگ را جست‌وجو کن…"/></div><select bind:value={statusFilter}><option value="">همه وضعیت‌ها</option>{#each Object.entries(statusNames) as [value, label]}<option {value}>{label}</option>{/each}</select><button class="cms-outline" onclick={loadArticles}><RefreshCw size={17}/> تازه‌سازی</button></div>
