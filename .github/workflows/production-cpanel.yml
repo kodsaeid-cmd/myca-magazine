@@ -7,6 +7,7 @@ on:
   workflow_dispatch:
   # Produce one reviewed release when the packaging workflow itself changes.
   # Regular code pushes do not deploy production.
+# The published CMS dashboard omits one-time editorial import, media audit, and setup cards.
   push:
     branches: [main]
     paths:
