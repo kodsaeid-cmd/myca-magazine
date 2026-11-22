@@ -29,6 +29,13 @@ $dirty='<h2>عنوان تست</h2><p onclick="alert(1)">مراقبت از سال
 $clean=cms_html($dirty);
 foreach(['<script','onclick=','javascript:','onerror='] as $needle)if(str_contains($clean,$needle))throw new RuntimeException('Unsanitized HTML: '.$needle);
 if(!str_contains($clean,'در منزل')||!str_contains($clean,'<h2>'))throw new RuntimeException('Lost semantic editor content');
+$validVideo=cms_html('<video src="/media/uploads/videos/20261122-safe123.mp4" autoplay onerror="alert(1)"></video>');
+if(!str_contains($validVideo,'<video')||!str_contains($validVideo,'controls')||str_contains($validVideo,'autoplay')||str_contains($validVideo,'onerror')) {
+  throw new RuntimeException('Inline video sanitization failed');
+}
+$unsafeVideo=cms_html('<video src="https://evil.invalid/video.mp4"></video>');
+if(str_contains($unsafeVideo,'<video'))throw new RuntimeException('External inline video bypassed sanitizer');
+
 
 $db->prepare("INSERT INTO cms_articles(slug,title,excerpt,body_html,status,category_slug,author_id,meta_title,robots,published_at) VALUES(?,?,?,?,?,?,?,?,?,UTC_TIMESTAMP())")
   ->execute(['elderly-home-test','عنوان آزمایشی','خلاصه آزمایشی',$clean,'published','elder-care',$id,'متای تست','index,follow']);
@@ -47,10 +54,15 @@ if(($before['title']??'')!=='عنوان آزمایشی')throw new RuntimeExcepti
 echo "PASS: MySQL schema, auth hash, real article CRUD, revision persistence, safe HTML.\n";
 
 
+$db->prepare('UPDATE cms_articles SET expert_name=?,expert_title=?,expert_quote=?,sources_json=? WHERE id=?')->execute([
+  'متخصص آزمایشی','کارشناس مراقبت','توصیه آزمایشی',
+  json_encode([['title'=>'منبع آزمایشی','url'=>'https://example.org/reference']],JSON_UNESCAPED_UNICODE),$aid
+]);
 $_GET['slug']='elderly-home-test';
 ob_start();
 include __DIR__.'/../static/api/story.php';
 $html=ob_get_clean();
+if(!str_contains($html,'href="#section-1"')||!str_contains($html,'در این مقاله می‌خوانید')||!str_contains($html,'منابع و ارجاعات')||!str_contains($html,'متخصص آزمایشی'))throw new RuntimeException('Editorial enrichment rendering failed');
 if (!str_contains($html,'نسخه ویرایش‌شده') || !str_contains($html,'<h1>') || !str_contains($html,'application/ld+json') || !str_contains($html,'canonical')) {
   throw new RuntimeException('SEO SSR article HTML failed: '.substr($html,0,400));
 }
