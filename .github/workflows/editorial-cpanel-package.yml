@@ -1,0 +1,125 @@
+name: MYCA Magazine | cPanel upgrade package
+on:
+  push:
+    branches: [feature/editorial-video-toc-experts-20261122]
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  package:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Build and verify
+        run: |
+          set -euo pipefail
+          npm install --no-audit --no-fund
+          npm run check
+          find static/api -type f -name '*.php' -print0 | xargs -0 -n1 php -l
+          npm run build
+      - name: Build production-only webroot ZIP
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -s build/index.php
+          test -s build/api/index.php
+          test -s build/api/story.php
+          test -s build/api/homepage.php
+          test -s build/admin/index.html
+          test -s build/fonts/Vazir-Regular.woff2
+          test -s build/.htaccess
+          test -s build/media/uploads/.htaccess
+          rm -rf build/article build/category build/search build/stories
+          rm -f build/index.html build/sitemap.xml
+          cat > build/robots.txt <<'ROBOTS'
+          User-agent: *
+          Allow: /
+          Disallow: /admin/
+          Disallow: /api/
+          Disallow: /editorial-preview/
+          Disallow: /media-check/
+          Disallow: /article/
+          Sitemap: https://blog.mycaapp.ir/sitemap.xml
+          ROBOTS
+          python3 - <<'PYTHON'
+          from pathlib import Path
+          p=Path('build/.htaccess')
+          data=p.read_text()
+          assert 'RewriteEngine On\n' in data
+          assert 'X-Robots-Tag "noindex' not in data
+          guard=('RewriteEngine On\n'
+                 '# MYCA: PRODUCTION BLOG ONLY\n'
+                 'RewriteCond %{HTTP_HOST} !^blog\\.mycaapp\\.ir(:[0-9]+)?$ [NC]\n'
+                 'RewriteRule ^ - [F,L]\n')
+          p.write_text(data.replace('RewriteEngine On\n',guard,1))
+          PYTHON
+          test ! -e build/index.html
+          grep -F 'MYCA: PRODUCTION BLOG ONLY' build/.htaccess
+          grep -F 'Sitemap: https://blog.mycaapp.ir/sitemap.xml' build/robots.txt
+      - name: Package code ZIP, migration and Persian installation guide
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p package
+          (cd build && zip -qr ../package/UPLOAD_TO_BLOG_ROOT.zip .)
+          cp server/migrations/002_editorial_enhancements.sql package/DATABASE_MIGRATION_002.sql
+          cat > package/INSTALL_GUIDE_FA.md <<'GUIDE'
+          # بسته ارتقای پنل و مقالات مجله مایکا ـ راهنمای نصب
+
+          مقصد فقط دامنه https://blog.mycaapp.ir است. این بسته برای cPanel / PHP / MySQL تهیه شده است و نباید روی mycaapp.com، لندینگ یا فروشگاه نصب شود.
+
+          ## مراحل اجرا
+
+          ۱. در cPanel > Domains نشانی دقیق Document Root دامنه blog.mycaapp.ir را پیدا کنید؛ ریشه ممکن است /home/ACCOUNT/blog.mycaapp.ir یا /home/ACCOUNT/public_html/blog.mycaapp.ir باشد. وارد ریشه دامنه دیگری نشوید.
+
+          ۲. از همه فایل‌های ریشه مجله با File Manager و از دیتابیس واقعی مجله با phpMyAdmin بک‌آپ کامل بگیرید. بک‌آپ را بیرون از Webroot و با امکان بازیابی نگه دارید.
+
+          ۳. پوشه‌های media/uploads/، media/editorial/، .well-known/ و فایل تنظیمات خصوصی خارج از Webroot را حفظ کنید. این فایل‌های محتوایی در بسته وجود ندارند و نباید حذف شوند.
+
+          ۴. فایل DATABASE_MIGRATION_002.sql را در phpMyAdmin فقط برای دیتابیس مجله (نه مایکا اپ) و فقط یک بار اجرا کنید. این SQL ستون‌های افزایشی متادیتای مقاله را ایجاد می‌کند؛ رکوردهای قبلی را حذف نمی‌کند.
+
+          ۵. فقط فایل UPLOAD_TO_BLOG_ROOT.zip را در ریشه واقعی blog.mycaapp.ir آپلود کنید؛ روی Extract بزنید. فایل‌های موجود برنامه را جایگزین کنید ولی هیچ پوشه موجودی را پاک یا Clean-Slate نکنید. پس از نصب ZIP را از Webroot حذف یا به فضای خصوصی منتقل کنید.
+
+          ۶. در cPanel > MultiPHP INI Editor محدودیت‌ها را متناسب با نیاز تنظیم کنید. برای ویدئوهای بزرگ تا سقف طراحی‌شده در برنامه، مقادیر پیشنهادی upload_max_filesize=80M، post_max_size=90M و max_execution_time=300 است. ممکن است هاست سقف پایین‌تری داشته باشد.
+
+          ۷. تنظیمات خصوصی قبلی شامل DB و session_secret را بدون تغییر حفظ کنید. رمزها، کلیدها و فایل config را در چت ارسال نکنید.
+
+          ۸. آزمون کنید: صفحه اصلی و مقالات قبلی؛ /admin/ و ذخیره مقاله؛ /api/index.php?route=health ؛ آپلود یک ویدئوی کوتاه MP4/WebM و نمایش در مقاله؛ فهرست خودکار از تیترهای H2/H3؛ دیدگاه متخصص و منابع؛ لینک‌های داخلی و مطالب مرتبط در ستون و پایین؛ نشست ۱۵ دقیقه‌ای حین ویرایش فعال؛ robots.txt و sitemap.xml؛ نمایش موبایل.
+
+          ۹. در صورت خطا فایل‌های سایت را با بک‌آپ قبل جایگزین کنید. ستون‌های اضافی SQL معمولاً می‌توانند باقی بمانند؛ بازگرداندن دیتابیس از بک‌آپ ممکن است داده‌های جدید بعد از نصب را از بین ببرد. برای Rollback دیتابیس با احتیاط تصمیم بگیرید.
+
+          ## محتویات
+
+          UPLOAD_TO_BLOG_ROOT.zip: کد PHP، HTML، JS، CSS، فونت و رسانه‌های بسته‌شده برای وب‌روت مجله.
+          DATABASE_MIGRATION_002.sql: مهاجرت دیتابیس، فقط یک بار.
+          INSTALL_GUIDE_FA.md: همین راهنما.
+          BUILD_INFO.txt: شناسه نسخه.
+          SHA256SUMS.txt: هش کنترل تمامیت.
+
+          هشدار: فقط پس از بک‌آپ و تطبیق وضعیت فایل‌های زنده نصب کنید. انتشار روی هاست توسط این بسته به‌صورت خودکار انجام نمی‌شود.
+          GUIDE
+          printf 'MYCA Magazine production upgrade\nbranch=%s\ncommit=%s\ntarget=https://blog.mycaapp.ir\n' "$GITHUB_REF_NAME" "$GITHUB_SHA" > package/BUILD_INFO.txt
+          (cd package && sha256sum UPLOAD_TO_BLOG_ROOT.zip DATABASE_MIGRATION_002.sql INSTALL_GUIDE_FA.md BUILD_INFO.txt > SHA256SUMS.txt)
+          (cd package && zip -q ../MYCA_MAGAZINE_EDITORIAL_CPANEL_20261122.zip UPLOAD_TO_BLOG_ROOT.zip DATABASE_MIGRATION_002.sql INSTALL_GUIDE_FA.md BUILD_INFO.txt SHA256SUMS.txt)
+          unzip -t MYCA_MAGAZINE_EDITORIAL_CPANEL_20261122.zip | tail -1
+          unzip -t package/UPLOAD_TO_BLOG_ROOT.zip | tail -1
+          ls -lh MYCA_MAGAZINE_EDITORIAL_CPANEL_20261122.zip
+      - name: Upload standalone installation package
+        uses: actions/upload-artifact@v4
+        with:
+          name: myca-magazine-editorial-cpanel-ready
+          path: MYCA_MAGAZINE_EDITORIAL_CPANEL_20261122.zip
+          if-no-files-found: error
+          retention-days: 30
+      - name: Create downloadable candidate release (NO hosting deployment)
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          TAG="myca-editorial-cpanel-$(git rev-parse --short HEAD)"
+          gh release create "$TAG" MYCA_MAGAZINE_EDITORIAL_CPANEL_20261122.zip --title "MYCA Magazine - cPanel editorial installer" --notes "Not deployed. Production blog.mycaapp.ir only. Includes webroot ZIP + additive migration + Persian guide. Back up live files and DB first." --prerelease --latest=false
+          echo "Package release tag: $TAG"
