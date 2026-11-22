@@ -518,7 +518,7 @@ try {
     if($isVideo){
       $header=file_get_contents($file['tmp_name'],false,null,0,16);
       if(($mime==='video/mp4'&&substr((string)$header,4,4)!=='ftyp') ||
-         ($mime==='video/webm'&&substr((string)$header,0,4)!=="\\x1A\\x45\\xDF\\xA3"))cms_error('ساختار فایل ویدئو معتبر نیست.');
+         ($mime==='video/webm'&&substr((string)$header,0,4)!=="\x1A\x45\xDF\xA3"))cms_error('ساختار فایل ویدئو معتبر نیست.');
     } else {
       if($bytes>4*1024*1024)cms_error('حجم تصویر باید کمتر از ۴ مگابایت باشد.',413);
       $info=@getimagesize($file['tmp_name']);
