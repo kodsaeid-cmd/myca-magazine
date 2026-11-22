@@ -63,12 +63,20 @@ function cms_session(): void {
   if (session_status() === PHP_SESSION_ACTIVE) return;
   ini_set('session.use_strict_mode','1');
   ini_set('session.use_only_cookies','1');
+  ini_set('session.gc_maxlifetime','900');
   session_name('myca_cms_session');
   session_set_cookie_params([
     // HTTP cookies are permitted only in explicit local Docker development. Production stays HTTPS-only.
     'lifetime'=>0,'path'=>'/','secure'=>(getenv('MYCA_ENV')==='development' && getenv('MYCA_COOKIE_SECURE')==='0') ? false : true,'httponly'=>true,'samesite'=>'Lax'
   ]);
   session_start();
+  // Expire only after fifteen minutes without authenticated server activity.
+  if (!empty($_SESSION['user_id'])) {
+    $now=time();
+    if (isset($_SESSION['last_active_at']) && $now-(int)$_SESSION['last_active_at']>900) {
+      $_SESSION=[];session_regenerate_id(true);
+    } else { $_SESSION['last_active_at']=$now; }
+  }
   if (!isset($_SESSION['csrf'])) $_SESSION['csrf']=bin2hex(random_bytes(32));
 }
 function cms_json(array $data, int $status=200): never {
@@ -167,14 +175,14 @@ function cms_html(string $html): string {
   libxml_clear_errors();libxml_use_internal_errors($previous);
   $root=$doc->getElementById('myca-root');
   if (!$root) return '';
-  $allow=array_fill_keys(['p','h2','h3','h4','strong','em','u','s','blockquote','ul','ol','li','a','img','table','thead','tbody','tr','th','td','pre','code','hr','br'],true);
+  $allow=array_fill_keys(['p','h2','h3','h4','strong','em','u','s','blockquote','ul','ol','li','a','img','table','thead','tbody','tr','th','td','pre','code','hr','br','video','sup'],true);
   $walk=function(DOMNode $parent) use (&$walk,$allow,$doc) {
     for ($node=$parent->firstChild;$node;) {
       $next=$node->nextSibling;
       if ($node instanceof DOMComment) {$parent->removeChild($node);}
       elseif ($node instanceof DOMElement) {
         $tag=strtolower($node->tagName);
-        if (in_array($tag,['script','style','iframe','object','embed','form','svg','math','video','audio'],true)) {
+        if (in_array($tag,['script','style','iframe','object','embed','form','svg','math','audio'],true)) {
           $parent->removeChild($node);
         } elseif (!isset($allow[$tag])) {
           $walk($node);
@@ -187,6 +195,14 @@ function cms_html(string $html): string {
           if ($tag==='a') {
             $url=cms_safe_url((string)($attrs['href']??''));
             if ($url) {$node->setAttribute('href',$url);$node->setAttribute('rel','noopener noreferrer');}
+          }
+          if ($tag==='video') {
+            $src=(string)($attrs['src']??'');
+            if (!preg_match('~^/media/uploads/videos/[a-zA-Z0-9_-]+\\.(?:mp4|webm)$~D',$src)) { $parent->removeChild($node);$node=$next;continue; }
+            $node->setAttribute('src',$src);
+            $node->setAttribute('controls','controls');
+            $node->setAttribute('preload','metadata');
+            $node->setAttribute('playsinline','playsinline');
           }
           if ($tag==='img') {
             $src=cms_safe_url((string)($attrs['src']??''));
