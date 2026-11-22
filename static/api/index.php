@@ -454,7 +454,7 @@ try {
         $q=$db->prepare($sql);$q->execute([...$values,$status,$id]);
         $db->commit();
       } else {
-        $sql="INSERT INTO cms_articles(slug,title,excerpt,body_html,status,category_slug,cover_url,cover_alt,meta_title,meta_description,canonical_url,robots,focus_keyword,faq_json,sources_json,related_article_ids,expert_name,expert_title,expert_quote,featured,author_id,published_at) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,CASE WHEN ?='published' THEN UTC_TIMESTAMP() ELSE NULL END)";
+        $sql="INSERT INTO cms_articles(slug,title,excerpt,body_html,status,category_slug,cover_url,cover_alt,meta_title,meta_description,canonical_url,robots,focus_keyword,faq_json,sources_json,related_article_ids,expert_name,expert_title,expert_quote,featured,author_id,published_at) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,CASE WHEN ?='published' THEN UTC_TIMESTAMP() ELSE NULL END)";
         $q=$db->prepare($sql);$q->execute([...$values,(int)$u['id'],$status]);
         $id=(int)$db->lastInsertId();
       }
