@@ -21,3 +21,23 @@
 .story-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:18px}.story-card{display:block;background:white;border:1px solid var(--line);border-radius:18px;overflow:hidden;transition:transform .2s,box-shadow .2s}.story-card:hover{transform:translateY(-3px);box-shadow:0 10px 25px #062e5c18}.story-card img{width:100%;height:190px;object-fit:cover}.story-card>div{padding:18px}.story-card h2{font-size:18px;line-height:1.65}.story-card p{font-size:13px;line-height:1.9;color:#647689}.empty{color:#6c7b8b}
 @media(max-width:800px){.sitehead{padding:14px 22px}.sitehead nav{width:100%}.story-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.prose{padding:23px}}
 @media(max-width:550px){.story-grid{grid-template-columns:1fr}.prose{padding:18px}.sitehead nav{gap:10px}}
+
+
+/* MYCA Editorial Enhancements — in-article navigation and internal discovery */
+.article-content-grid{display:grid;grid-template-columns:minmax(0,1fr) 245px;gap:24px;align-items:start;max-width:1100px;margin:30px auto}
+.article-primary{min-width:0}
+.article-primary .prose{max-width:100%;padding:30px}
+.article-toc,.expert-opinion,.article-sources,.article-bottom-related,.article-aside{background:white;border:1px solid var(--line);border-radius:18px;padding:20px;margin-bottom:22px}
+.article-toc h2,.article-sources h2,.article-bottom-related h2,.article-aside h2{font-size:18px;margin:0 0 12px}
+.article-toc ol{margin:0;padding-right:22px}.article-toc li{line-height:1.9;padding:3px 0}.article-toc .toc-sub{margin-right:16px;font-size:14px}
+.article-toc a,.article-aside a,.article-bottom-related a{color:#005474}.article-toc a:hover,.article-aside a:hover,.article-bottom-related a:hover{text-decoration:underline}
+.prose h2[id],.prose h3[id]{scroll-margin-top:26px}
+.article-aside{position:sticky;top:22px}.article-aside .aside-story{display:block;border-bottom:1px solid var(--line);padding:13px 0;line-height:1.75;font-size:14px}
+.aside-service{background:#eaf7fb;border-radius:14px;padding:15px;margin-top:20px;font-size:13px}.aside-service p{line-height:1.8}.aside-service a{font-weight:700}
+.related-list{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}.related-list a{padding:12px;background:#f5f8fb;border-radius:12px}
+.expert-opinion blockquote{font-size:16px;line-height:2;margin:12px 0 16px;border-right:3px solid #00a4d4;padding-right:15px}
+.expert-opinion small{display:block;color:#66758a}.article-sources ol{padding-right:24px;line-height:2}
+.article-sources a{color:#008db8;text-decoration:underline}
+.prose video{width:100%;max-height:520px;background:#111;border-radius:16px;display:block;margin:24px 0}
+@media(max-width:850px){.article-content-grid{grid-template-columns:1fr}.article-aside{position:static}.article-primary .prose{padding:22px}}
+@media(max-width:550px){.related-list{grid-template-columns:1fr}.article-primary .prose{padding:16px}.article-toc,.expert-opinion,.article-sources,.article-bottom-related,.article-aside{padding:17px}}
