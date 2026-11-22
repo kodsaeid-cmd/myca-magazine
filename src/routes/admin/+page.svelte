@@ -435,17 +435,39 @@
       body.append('alt', selectedImageAlt || form.cover_alt || '');
       const r = await request('upload', { method: 'POST', body });
       if (view === 'editor') {
-        if (!form.cover_url) form.cover_url = r.path;
-        if (editor) editor.chain().focus().setImage({ src: publicImageUrl(r.path), alt: r.alt }).run();
+        if (r.type === 'video') {
+          if (editor) editor.chain().focus().insertContent({ type: 'mycaVideo', attrs: { src: r.path } }).run();
+        } else {
+          if (!form.cover_url) form.cover_url = r.path;
+          if (editor) editor.chain().focus().setImage({ src: publicImageUrl(r.path), alt: r.alt }).run();
+        }
       }
       await loadMedia();
-      notice = 'تصویر روی سرور ذخیره شد.';
+      notice = r.type === 'video' ? 'ویدئو آپلود و در متن درج شد.' : 'تصویر روی سرور ذخیره شد.';
     } catch (e) { error = e.message; }
-    finally { busy = false; if (uploadInput) uploadInput.value = ''; }
+    finally { busy = false; if (uploadInput) uploadInput.value = ''; if (videoUploadInput) videoUploadInput.value = ''; }
   }
   function newTab() { window.open('/stories/' + form.slug + '/', '_blank', 'noopener,noreferrer'); }
 
-  onMount(loadSession);
+  onMount(() => {
+    loadSession();
+    const activity = () => { if(view === 'editor') lastEditorActivity = Date.now(); };
+    document.addEventListener('input', activity, true);
+    document.addEventListener('keydown', activity, true);
+    const timer = window.setInterval(async () => {
+      if(!user || view !== 'editor' || Date.now() - lastEditorActivity > 14*60*1000) return;
+      try {
+        const result = await request('me');
+        if(!result.authenticated) { error = 'نشست ویرایش منقضی شده است. دوباره وارد شوید.'; }
+        else csrf = result.csrf;
+      } catch { /* a heartbeat failure must not discard editor contents */ }
+    }, 4*60*1000);
+    return () => {
+      clearInterval(timer);
+      document.removeEventListener('input', activity, true);
+      document.removeEventListener('keydown', activity, true);
+    };
+  });
   onDestroy(teardownEditor);
 </script>
 
@@ -544,11 +566,11 @@
                     <span></span><button title="فهرست" onclick={() => command('bullets')}><List size={18}/></button><button title="فهرست شماره‌دار" onclick={() => command('numbers')}><ListOrdered size={18}/></button>
                     <button title="نقل قول" onclick={() => command('quote')}><Quote size={18}/></button><button title="لینک" onclick={() => command('link')}><Link2 size={18}/></button><button title="جدول" onclick={() => command('table')}><Table2 size={19}/></button>
                     <span></span><button title="بازگشت" onclick={() => command('undo')}><Undo2 size={18}/></button><button title="انجام مجدد" onclick={() => command('redo')}><Redo2 size={18}/></button>
-                    <button title="درج تصویر" onclick={() => uploadInput?.click()}><ImageIcon size={18}/></button>
+                    <button title="درج تصویر" onclick={() => uploadInput?.click()}><ImageIcon size={18}/></button><button title="بارگذاری و درج ویدئو" onclick={() => videoUploadInput?.click()}><Upload size={18}/></button>
                   </div>
                   <div class="cms-editor-area" bind:this={editorHost}></div>
                   {#if editorLoading}<p class="cms-help">ویرایشگر در حال آماده‌سازی است…</p>{/if}
-                  <p class="cms-help">ویرایشگر Tiptap/ProseMirror: تیترها، لیست‌ها، لینک، جدول، تصویر، Undo/Redo و خروجی HTML واقعی</p>
+                  <p class="cms-help">فهرست مقاله از تیترهای سطح ۲ و ۳ خودکار ساخته می‌شود. بارگذاری MP4/WebM تا ۸۰ مگابایت به محدودیت سرور نیز بستگی دارد.</p>
                 </div>
                 <div class="cms-panel cms-seo-panel"><div class="cms-panel-head"><div><span class="cms-overline">SEO STUDIO · TEXT</span><h3>تنظیمات سئوی مقاله</h3></div><Search size={23} color="#00a4d4"/></div>
                   <div class="cms-two-col"><label class="cms-field">عنوان SEO<input bind:value={form.meta_title} maxlength="250" placeholder={form.title || 'Meta title'} /><small>{form.meta_title.length.toLocaleString('fa-IR')} کاراکتر</small></label><label class="cms-field">Focus Keyword<input bind:value={form.focus_keyword} maxlength="190" placeholder="کلیدواژه اصلی" /></label></div>
@@ -635,5 +657,5 @@
       </div>
     </div>
   {/if}
-  <input class="cms-file-input" type="file" accept="image/jpeg,image/png,image/webp" bind:this={uploadInput} onchange={uploadFile}/>
+  <input class="cms-file-input" type="file" accept="image/jpeg,image/png,image/webp" bind:this={uploadInput} onchange={uploadFile}/><input class="cms-file-input" type="file" accept="video/mp4,video/webm" bind:this={videoUploadInput} onchange={uploadFile}/>
 </div>
