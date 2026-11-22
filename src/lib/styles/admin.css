@@ -131,3 +131,13 @@ body:has(.cms-shell) .site-shell{min-height:100vh}
 .cms-media-audit>div{border:1px solid #e2eaf0;border-radius:10px;padding:11px;display:grid;gap:5px;background:#fff}
 .cms-media-audit strong{font-size:12px}
 .cms-media-audit code{direction:ltr;text-align:left;display:block;overflow-wrap:anywhere;font-size:11px;color:#7b5260}
+
+
+/* MYCA Magazine: editor video, structured metadata & related article picker */
+.cms-prosemirror video{display:block;width:100%;max-width:760px;max-height:420px;background:#101d2a;border-radius:14px;margin:14px 0}
+.cms-media-card video{width:100%;aspect-ratio:16/9;object-fit:contain;background:#102b42;border-radius:12px}
+.cms-editor-extras textarea{min-height:85px}
+.cms-related-pick{max-height:210px;overflow:auto;display:flex;flex-direction:column;gap:5px}
+.cms-related-pick label{display:flex;align-items:center;gap:9px;padding:7px 3px;font-size:13px}
+.cms-related-pick input{flex:none}
+.cms-sources-hint{font-size:12px;line-height:1.9;color:#66758a}

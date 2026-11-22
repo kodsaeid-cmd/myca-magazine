@@ -227,6 +227,7 @@ try {
     }
     session_regenerate_id(true);
     $_SESSION['user_id']=(int)$u['id'];$_SESSION['csrf']=bin2hex(random_bytes(32));
+    $_SESSION['last_active_at']=time();
     $_SESSION['auth_signature']=hash_hmac('sha256',(string)$u['password_hash'],(string)$cfg['session_secret']);
     $db->prepare('UPDATE cms_users SET last_login_at=UTC_TIMESTAMP() WHERE id=?')->execute([$u['id']]);
     $db->prepare('DELETE FROM cms_login_attempts WHERE ip_hash=?')->execute([$ipHash]);
@@ -380,6 +381,8 @@ try {
     $q=$db->prepare('SELECT * FROM cms_articles WHERE id=?');$q->execute([$id]);$a=$q->fetch();
     if (!$a || ($u['role']==='author'&&(int)$a['author_id']!==(int)$u['id'])) cms_error('مقاله پیدا نشد.',404);
     $a['faq_json']=$a['faq_json']?json_decode($a['faq_json'],true):[];
+    $a['sources_json']=$a['sources_json']?json_decode($a['sources_json'],true):[];
+    $a['related_article_ids']=$a['related_article_ids']?json_decode($a['related_article_ids'],true):[];
     cms_json(['ok'=>true,'article'=>$a]);
   }
   if ($route==='save'&&$method==='POST') {
@@ -421,16 +424,37 @@ try {
       $answer=cms_clean_text($f['answer']??'',1600);
       if ($question&&$answer) $faqItems[]=['question'=>$question,'answer'=>$answer];
     }
-    $values=[$slug,$title,$excerpt,$body,$status,$cat,$cover,$alt,$metaTitle,$metaDesc,$canonical,$robots,$keyword,json_encode($faqItems,JSON_UNESCAPED_UNICODE),$featured];
+    // Optional opinion and references: never claim third-party verification on the writer's behalf.
+    $expertName=cms_clean_text($data['expert_name']??'',150);
+    $expertTitle=cms_clean_text($data['expert_title']??'',200);
+    $expertQuote=cms_clean_text($data['expert_quote']??'',3000);
+    $sources=$data['sources_json']??[];
+    if(!is_array($sources)||count($sources)>20)cms_error('فهرست منابع نامعتبر است.');
+    $sourceItems=[];
+    foreach($sources as $source){
+      if(!is_array($source))continue;
+      $label=cms_clean_text($source['title']??'',300);
+      $sourceUrl=cms_safe_url(cms_clean_text($source['url']??'',700),false);
+      if($label!=='')$sourceItems[]=['title'=>$label,'url'=>$sourceUrl];
+    }
+    $related=$data['related_article_ids']??[];
+    if(!is_array($related)||count($related)>6)cms_error('حداکثر شش مقاله مرتبط مجاز است.');
+    $relatedIds=[];
+    foreach($related as $relatedId){
+      if(!is_numeric($relatedId))continue;
+      $rid=(int)$relatedId;
+      if($rid>0&&$rid!==$id&&!in_array($rid,$relatedIds,true))$relatedIds[]=$rid;
+    }
+    $values=[$slug,$title,$excerpt,$body,$status,$cat,$cover,$alt,$metaTitle,$metaDesc,$canonical,$robots,$keyword,json_encode($faqItems,JSON_UNESCAPED_UNICODE),json_encode($sourceItems,JSON_UNESCAPED_UNICODE),json_encode($relatedIds),$expertName,$expertTitle,$expertQuote,$featured];
     try {
       if ($id>0) {
         $q=$db->prepare('INSERT INTO cms_revisions(article_id,editor_id,snapshot) VALUES(?,?,?)');
         $q->execute([$id,(int)$u['id'],json_encode($before,JSON_UNESCAPED_UNICODE|JSON_INVALID_UTF8_SUBSTITUTE)]);
-        $sql="UPDATE cms_articles SET slug=?,title=?,excerpt=?,body_html=?,status=?,category_slug=?,cover_url=?,cover_alt=?,meta_title=?,meta_description=?,canonical_url=?,robots=?,focus_keyword=?,faq_json=?,featured=?,published_at=CASE WHEN ?='published' THEN COALESCE(published_at,UTC_TIMESTAMP()) ELSE published_at END WHERE id=?";
+        $sql="UPDATE cms_articles SET slug=?,title=?,excerpt=?,body_html=?,status=?,category_slug=?,cover_url=?,cover_alt=?,meta_title=?,meta_description=?,canonical_url=?,robots=?,focus_keyword=?,faq_json=?,sources_json=?,related_article_ids=?,expert_name=?,expert_title=?,expert_quote=?,featured=?,published_at=CASE WHEN ?='published' THEN COALESCE(published_at,UTC_TIMESTAMP()) ELSE published_at END WHERE id=?";
         $q=$db->prepare($sql);$q->execute([...$values,$status,$id]);
         $db->commit();
       } else {
-        $sql="INSERT INTO cms_articles(slug,title,excerpt,body_html,status,category_slug,cover_url,cover_alt,meta_title,meta_description,canonical_url,robots,focus_keyword,faq_json,featured,author_id,published_at) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,CASE WHEN ?='published' THEN UTC_TIMESTAMP() ELSE NULL END)";
+        $sql="INSERT INTO cms_articles(slug,title,excerpt,body_html,status,category_slug,cover_url,cover_alt,meta_title,meta_description,canonical_url,robots,focus_keyword,faq_json,sources_json,related_article_ids,expert_name,expert_title,expert_quote,featured,author_id,published_at) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,CASE WHEN ?='published' THEN UTC_TIMESTAMP() ELSE NULL END)";
         $q=$db->prepare($sql);$q->execute([...$values,(int)$u['id'],$status]);
         $id=(int)$db->lastInsertId();
       }
@@ -462,7 +486,7 @@ try {
     try {
       $q=$db->prepare('INSERT INTO cms_revisions(article_id,editor_id,snapshot) VALUES(?,?,?)');
       $q->execute([$id,(int)$u['id'],json_encode($current,JSON_UNESCAPED_UNICODE)]);
-      $keys=['slug','title','excerpt','body_html','category_slug','cover_url','cover_alt','meta_title','meta_description','canonical_url','robots','focus_keyword','faq_json','featured'];
+      $keys=['slug','title','excerpt','body_html','category_slug','cover_url','cover_alt','meta_title','meta_description','canonical_url','robots','focus_keyword','faq_json','sources_json','related_article_ids','expert_name','expert_title','expert_quote','featured'];
       $sql='UPDATE cms_articles SET '.implode(',',array_map(fn($k)=>$k.'=?',$keys)).",status='draft' WHERE id=?";
       $values=array_map(fn($k)=>$old[$k]??'',$keys);
       $db->prepare($sql)->execute([...$values,$id]);$db->commit();
@@ -478,23 +502,40 @@ try {
   if ($route==='upload'&&$method==='POST') {
     cms_csrf();$u=cms_user();
     $file=$_FILES['file']??null;
-    if (!$file||is_array($file['error'])||$file['error']!==UPLOAD_ERR_OK) cms_error('آپلود فایل انجام نشد.');
-    if ($file['size']>4*1024*1024||$file['size']<100)cms_error('حجم تصویر باید کمتر از ۴ مگابایت باشد.');
-    $info=@getimagesize($file['tmp_name']);
-    $mime=$info['mime']??'';
-    $ext=['image/jpeg'=>'jpg','image/png'=>'png','image/webp'=>'webp'][$mime]??null;
-    if (!$ext||($info[0]??0)>6000||($info[1]??0)>6000)cms_error('فقط JPEG، PNG و WebP استاندارد مجاز هستند.');
-    $dir=dirname(__DIR__).'/media/uploads';
-    if (!is_dir($dir)&&!mkdir($dir,0755,true))cms_error('پوشه رسانه قابل ایجاد نیست.',500);
+    if (!$file||is_array($file['error'])||$file['error']!==UPLOAD_ERR_OK) {
+      $code=(int)($file['error']??-1);
+      cms_error($code===UPLOAD_ERR_INI_SIZE||$code===UPLOAD_ERR_FORM_SIZE
+        ?'حجم فایل از محدودیت سرور بیشتر است؛ تنظیمات PHP را بررسی کنید.':'آپلود فایل انجام نشد.');
+    }
+    if (!is_uploaded_file($file['tmp_name']))cms_error('فایل ارسالی معتبر نیست.');
+    $bytes=(int)$file['size'];
+    if ($bytes<100||$bytes>80*1024*1024)cms_error('حجم فایل باید بین ۱۰۰ بایت تا ۸۰ مگابایت باشد.',413);
+    $mime=(new finfo(FILEINFO_MIME_TYPE))->file($file['tmp_name']);
+    $images=['image/jpeg'=>'jpg','image/png'=>'png','image/webp'=>'webp'];
+    $videos=['video/mp4'=>'mp4','video/webm'=>'webm'];
+    $isVideo=isset($videos[$mime]);
+    if(!isset($images[$mime])&&!$isVideo)cms_error('فقط تصویر JPEG/PNG/WebP یا ویدئوی MP4/WebM مجاز است.');
+    if($isVideo){
+      $header=file_get_contents($file['tmp_name'],false,null,0,16);
+      if(($mime==='video/mp4'&&substr((string)$header,4,4)!=='ftyp') ||
+         ($mime==='video/webm'&&substr((string)$header,0,4)!=="\x1A\x45\xDF\xA3"))cms_error('ساختار فایل ویدئو معتبر نیست.');
+    } else {
+      if($bytes>4*1024*1024)cms_error('حجم تصویر باید کمتر از ۴ مگابایت باشد.',413);
+      $info=@getimagesize($file['tmp_name']);
+      if(!$info||($info[0]??0)>6000||($info[1]??0)>6000)cms_error('فایل تصویر معتبر نیست.');
+    }
+    $ext=$isVideo?$videos[$mime]:$images[$mime];
+    $dir=dirname(__DIR__).'/media/uploads'.($isVideo?'/videos':'');
+    if(!is_dir($dir)&&!mkdir($dir,0755,true))cms_error('پوشه رسانه قابل ایجاد نیست.',500);
     $name=gmdate('Ymd').'-'.bin2hex(random_bytes(12)).'.'.$ext;
-    if(!move_uploaded_file($file['tmp_name'],$dir.'/'.$name))cms_error('ذخیره تصویر ناموفق بود.',500);
+    if(!move_uploaded_file($file['tmp_name'],$dir.'/'.$name))cms_error('ذخیره رسانه ناموفق بود.',500);
     chmod($dir.'/'.$name,0644);
-    $url='/media/uploads/'.$name;
-    $alt=cms_clean_text($_POST['alt']??'',255);
+    $url='/media/uploads'.($isVideo?'/videos':'').'/'.$name;
+    $alt=$isVideo?'':cms_clean_text($_POST['alt']??'',255);
     $q=$db->prepare('INSERT INTO cms_media(uploader_id,path,mime,bytes,alt) VALUES(?,?,?,?,?)');
-    $q->execute([(int)$u['id'],$url,$mime,$file['size'],$alt]);
+    $q->execute([(int)$u['id'],$url,$mime,$bytes,$alt]);
     cms_log((int)$u['id'],'upload','media',(int)$db->lastInsertId());
-    cms_json(['ok'=>true,'path'=>$url,'alt'=>$alt,'id'=>(int)$db->lastInsertId()]);
+    cms_json(['ok'=>true,'path'=>$url,'alt'=>$alt,'mime'=>$mime,'type'=>$isVideo?'video':'image','id'=>(int)$db->lastInsertId()]);
   }
   cms_error('درخواست پشتیبانی نمی‌شود.',404);
 } catch (Throwable $e) {

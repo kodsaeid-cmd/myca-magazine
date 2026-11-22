@@ -14,7 +14,7 @@
     id: 0, title: '', slug: '', excerpt: '', body_html: '<p></p>',
     category_slug: 'elder-care', status: 'draft', cover_url: '', cover_alt: '',
     meta_title: '', meta_description: '', canonical_url: '', robots: 'index,follow',
-    focus_keyword: '', faq_json: [], featured: false
+    focus_keyword: '', faq_json: [], sources_json: [], related_article_ids: [], expert_name: '', expert_title: '', expert_quote: '', featured: false
   });
   const statusNames = { draft: 'پیش‌نویس', review: 'در انتظار بازبینی', published: 'منتشرشده', archived: 'بایگانی' };
   let initialized = false, loading = true, user = null, csrf = '', serviceError = '';
@@ -27,7 +27,8 @@
   let editUserPassword = '', editUserCurrentPassword = '', showEditUserPassword = false, showEditCurrentPassword = false;
   let imageAudit = null, imageAuditLoading = false;
   let search = '', statusFilter = '', form = empty(), faqText = '';
-  let editorHost, uploadInput, editor, editorLoading = false;
+  let editorHost, uploadInput, videoUploadInput, editor, editorLoading = false;
+  let sourcesText = '', internalLinkId = '', lastEditorActivity = Date.now();
   let selectedImageAlt = '';
   $: canPublish = user && (user.role === 'admin' || user.role === 'editor');
   $: visibleArticles = articles.filter((a) =>
@@ -278,7 +279,8 @@
     if (next === 'dashboard') await loadDashboard();
   }
   async function openNew() {
-    clearMessages(); teardownEditor(); form = empty(); faqText = ''; revisions = [];
+    clearMessages(); teardownEditor(); form = empty(); faqText = ''; sourcesText = ''; revisions = [];
+    await loadArticles();
     view = 'editor'; navOpen = false;
     await tick(); await startEditor();
   }
@@ -289,6 +291,9 @@
       teardownEditor();
       form = { ...empty(), ...article, featured: Number(article.featured || 0) === 1 };
       faqText = (article.faq_json || []).map((f) => f.question + ' | ' + f.answer).join('\n');
+      sourcesText = (article.sources_json || []).map((f) => f.title + ' | ' + (f.url || '')).join('\n');
+      form.related_article_ids = (article.related_article_ids || []).map(Number);
+      await loadArticles();
       revisions = [];
       view = 'editor'; navOpen = false;
       await tick(); await startEditor();
@@ -300,7 +305,7 @@
     editorLoading = true;
     try {
       const [
-        { Editor }, { default: StarterKit }, { default: Underline },
+        { Editor, Node }, { default: StarterKit }, { default: Underline },
         { default: Link }, { default: Image }, { default: Table },
         { default: TableRow }, { default: TableHeader }, { default: TableCell },
         { default: TextAlign }
@@ -311,10 +316,18 @@
         import('@tiptap/extension-table-row'), import('@tiptap/extension-table-header'),
         import('@tiptap/extension-table-cell'), import('@tiptap/extension-text-align')
       ]);
+      const Video = Node.create({
+        name: 'mycaVideo', group: 'block', atom: true, selectable: true,
+        addAttributes() { return { src: { default: null } }; },
+        parseHTML() { return [{ tag: 'video[src]' }]; },
+        renderHTML({ HTMLAttributes }) {
+          return ['video', { src: HTMLAttributes.src, controls: 'controls', preload: 'metadata', playsinline: 'playsinline' }];
+        }
+      });
       editor = new Editor({
         element: editorHost,
         extensions: [
-          StarterKit, Underline,
+          StarterKit, Underline, Video,
           Link.configure({ openOnClick: false, HTMLAttributes: { rel: 'noopener noreferrer' } }),
           Image.configure({ allowBase64: false }),
           Table.configure({ resizable: false }), TableRow, TableHeader, TableCell,
@@ -322,7 +335,7 @@
         ],
         editorProps: { attributes: { class: 'cms-prosemirror', dir: 'rtl', spellcheck: 'true' } },
         content: editorImageUrls(form.body_html || '<p></p>'),
-        onUpdate: ({ editor: instance }) => { form.body_html = originalImageUrls(instance.getHTML()); }
+        onUpdate: ({ editor: instance }) => { form.body_html = originalImageUrls(instance.getHTML()); lastEditorActivity = Date.now(); }
       });
     } catch (e) { error = 'ویرایشگر بارگذاری نشد: ' + e.message; }
     finally { editorLoading = false; }
@@ -350,6 +363,32 @@
       else error = 'فقط لینک https یا مسیر داخلی مجاز است.';
     }
   }
+  function parseSources() {
+    return sourcesText.split('\n').map((line) => {
+      const p = line.indexOf('|');
+      const title = (p < 0 ? line : line.slice(0, p)).trim();
+      const url = (p < 0 ? '' : line.slice(p + 1)).trim();
+      if(!title) return null;
+      if(url && !/^https:\/\/\S+$/i.test(url)) throw new Error('آدرس منبع باید با https:// آغاز شود.');
+      return { title, url };
+    }).filter(Boolean).slice(0, 20);
+  }
+  function insertInternalLink() {
+    const a = articles.find((x) => Number(x.id) === Number(internalLinkId) && x.status === 'published');
+    if(!a || !editor) return;
+    const url = '/stories/' + a.slug + '/';
+    if(editor.state.selection.empty) {
+      const title = a.title.replace(/&/g,'&amp;').replace(/</g,'&lt;');
+      editor.chain().focus().insertContent('<a href="' + url + '">' + title + '</a>').run();
+    } else editor.chain().focus().setLink({ href: url }).run();
+    notice = 'لینک داخلی مقاله درج شد.';
+  }
+  function toggleRelated(id, checked) {
+    const number = Number(id);
+    const current = (form.related_article_ids || []).map(Number).filter((x) => x !== number);
+    if(checked && current.length >= 6) { error = 'حداکثر ۶ مقاله مرتبط مجاز است.'; return; }
+    form.related_article_ids = checked ? [...current, number] : current;
+  }
   function parseFaq() {
     return faqText.split('\n').map((line) => {
       const pos = line.indexOf('|');
@@ -362,7 +401,7 @@
   async function saveArticle(status) {
     clearMessages(); busy = true;
     try {
-      const payload = { ...form, status, body_html: originalImageUrls(editor?.getHTML() || form.body_html), faq_json: parseFaq() };
+      const payload = { ...form, status, body_html: originalImageUrls(editor?.getHTML() || form.body_html), faq_json: parseFaq(), sources_json: parseSources() };
       const result = await request('save', {
         method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload)
       });
@@ -396,17 +435,39 @@
       body.append('alt', selectedImageAlt || form.cover_alt || '');
       const r = await request('upload', { method: 'POST', body });
       if (view === 'editor') {
-        if (!form.cover_url) form.cover_url = r.path;
-        if (editor) editor.chain().focus().setImage({ src: publicImageUrl(r.path), alt: r.alt }).run();
+        if (r.type === 'video') {
+          if (editor) editor.chain().focus().insertContent({ type: 'mycaVideo', attrs: { src: r.path } }).run();
+        } else {
+          if (!form.cover_url) form.cover_url = r.path;
+          if (editor) editor.chain().focus().setImage({ src: publicImageUrl(r.path), alt: r.alt }).run();
+        }
       }
       await loadMedia();
-      notice = 'تصویر روی سرور ذخیره شد.';
+      notice = r.type === 'video' ? 'ویدئو آپلود و در متن درج شد.' : 'تصویر روی سرور ذخیره شد.';
     } catch (e) { error = e.message; }
-    finally { busy = false; if (uploadInput) uploadInput.value = ''; }
+    finally { busy = false; if (uploadInput) uploadInput.value = ''; if (videoUploadInput) videoUploadInput.value = ''; }
   }
   function newTab() { window.open('/stories/' + form.slug + '/', '_blank', 'noopener,noreferrer'); }
 
-  onMount(loadSession);
+  onMount(() => {
+    loadSession();
+    const activity = () => { if(view === 'editor') lastEditorActivity = Date.now(); };
+    document.addEventListener('input', activity, true);
+    document.addEventListener('keydown', activity, true);
+    const timer = window.setInterval(async () => {
+      if(!user || view !== 'editor' || Date.now() - lastEditorActivity > 14*60*1000) return;
+      try {
+        const result = await request('me');
+        if(!result.authenticated) { error = 'نشست ویرایش منقضی شده است. دوباره وارد شوید.'; }
+        else csrf = result.csrf;
+      } catch { /* a heartbeat failure must not discard editor contents */ }
+    }, 4*60*1000);
+    return () => {
+      clearInterval(timer);
+      document.removeEventListener('input', activity, true);
+      document.removeEventListener('keydown', activity, true);
+    };
+  });
   onDestroy(teardownEditor);
 </script>
 
@@ -505,17 +566,36 @@
                     <span></span><button title="فهرست" onclick={() => command('bullets')}><List size={18}/></button><button title="فهرست شماره‌دار" onclick={() => command('numbers')}><ListOrdered size={18}/></button>
                     <button title="نقل قول" onclick={() => command('quote')}><Quote size={18}/></button><button title="لینک" onclick={() => command('link')}><Link2 size={18}/></button><button title="جدول" onclick={() => command('table')}><Table2 size={19}/></button>
                     <span></span><button title="بازگشت" onclick={() => command('undo')}><Undo2 size={18}/></button><button title="انجام مجدد" onclick={() => command('redo')}><Redo2 size={18}/></button>
-                    <button title="درج تصویر" onclick={() => uploadInput?.click()}><ImageIcon size={18}/></button>
+                    <button title="درج تصویر" onclick={() => uploadInput?.click()}><ImageIcon size={18}/></button><button title="بارگذاری و درج ویدئو" onclick={() => videoUploadInput?.click()}><Upload size={18}/></button>
                   </div>
                   <div class="cms-editor-area" bind:this={editorHost}></div>
                   {#if editorLoading}<p class="cms-help">ویرایشگر در حال آماده‌سازی است…</p>{/if}
-                  <p class="cms-help">ویرایشگر Tiptap/ProseMirror: تیترها، لیست‌ها، لینک، جدول، تصویر، Undo/Redo و خروجی HTML واقعی</p>
+                  <p class="cms-help">فهرست مقاله از تیترهای سطح ۲ و ۳ خودکار ساخته می‌شود. بارگذاری MP4/WebM تا ۸۰ مگابایت به محدودیت سرور نیز بستگی دارد.</p>
                 </div>
                 <div class="cms-panel cms-seo-panel"><div class="cms-panel-head"><div><span class="cms-overline">SEO STUDIO · TEXT</span><h3>تنظیمات سئوی مقاله</h3></div><Search size={23} color="#00a4d4"/></div>
                   <div class="cms-two-col"><label class="cms-field">عنوان SEO<input bind:value={form.meta_title} maxlength="250" placeholder={form.title || 'Meta title'} /><small>{form.meta_title.length.toLocaleString('fa-IR')} کاراکتر</small></label><label class="cms-field">Focus Keyword<input bind:value={form.focus_keyword} maxlength="190" placeholder="کلیدواژه اصلی" /></label></div>
                   <label class="cms-field">Meta Description<textarea bind:value={form.meta_description} maxlength="320" rows="3" placeholder="توضیحی برای نتایج جست‌وجو…"></textarea><small>{form.meta_description.length.toLocaleString('fa-IR')} کاراکتر</small></label>
                   <div class="cms-two-col"><label class="cms-field">Canonical URL<input dir="ltr" bind:value={form.canonical_url} placeholder="https://…" /></label><label class="cms-field">دسترسی ربات‌های جست‌وجو<select bind:value={form.robots}><option value="index,follow">Index, Follow</option><option value="noindex,follow">Noindex, Follow</option><option value="noindex,nofollow">Noindex, Nofollow</option></select></label></div>
-                  <div class="cms-serp"><span>پیش‌نمایش نتایج جست‌وجو</span><strong>{form.meta_title || form.title || 'عنوان مقاله مایکا'}</strong><small>{'mycablog.dandoonii.ir/stories/' + (form.slug || 'article-slug') + '/'}</small><p>{form.meta_description || form.excerpt || 'توضیحات متای مقاله در این بخش نمایش داده می‌شود.'}</p></div>
+                  <div class="cms-serp"><span>پیش‌نمایش نتایج جست‌وجو</span><strong>{form.meta_title || form.title || 'عنوان مقاله مایکا'}</strong><small>{'blog.mycaapp.ir/stories/' + (form.slug || 'article-slug') + '/'}</small><p>{form.meta_description || form.excerpt || 'توضیحات متای مقاله در این بخش نمایش داده می‌شود.'}</p></div>
+                </div>
+
+                <div class="cms-panel cms-editor-extras">
+                  <div class="cms-panel-head"><h3>اعتبار علمی و منابع</h3><ShieldCheck size={20}/></div>
+                  <div class="cms-two-col">
+                    <label class="cms-field">نام متخصص (اختیاری)<input bind:value={form.expert_name} maxlength="150" placeholder="نام واقعی متخصص"/></label>
+                    <label class="cms-field">عنوان و تخصص<input bind:value={form.expert_title} maxlength="200" placeholder="مثلاً کارشناس ارشد پرستاری"/></label>
+                  </div>
+                  <label class="cms-field">دیدگاه تخصصی / نقل‌قول<textarea bind:value={form.expert_quote} rows="3" maxlength="3000" placeholder="متن نظر تأییدشده توسط متخصص…"></textarea></label>
+                  <label class="cms-field">منابع (هر خط: عنوان | نشانی https)<textarea dir="auto" bind:value={sourcesText} rows="5" placeholder="عنوان منبع | https://example.org/article"></textarea></label>
+                  <p class="cms-sources-hint">صرف نوشتن نام متخصص به معنی تأیید علمی مقاله نیست؛ انتساب را پیش از انتشار بررسی کنید.</p>
+                </div>
+                <div class="cms-panel cms-editor-extras">
+                  <div class="cms-panel-head"><h3>لینک داخلی به مقالات مجله</h3><Link2 size={20}/></div>
+                  <div class="cms-two-col">
+                    <label class="cms-field">مقاله مقصد<select bind:value={internalLinkId}><option value="">انتخاب مقاله منتشرشده…</option>{#each articles.filter((a) => a.status === 'published' && Number(a.id) !== Number(form.id)) as item}<option value={item.id}>{item.title}</option>{/each}</select></label>
+                    <button class="cms-outline" onclick={insertInternalLink} disabled={!internalLinkId}>درج لینک در متن</button>
+                  </div>
+                  <p class="cms-help">متن انتخاب‌شده لینک می‌شود؛ در غیر این صورت عنوان مقاله در محل نشانگر درج خواهد شد.</p>
                 </div>
                 <div class="cms-panel"><div class="cms-panel-head"><h3>سؤالات متداول / FAQ Schema</h3><span class="cms-help">هر خط: سؤال | پاسخ</span></div><textarea bind:value={faqText} rows="4" placeholder="مراقبت در منزل چیست؟ | مراقبت در منزل شامل…"></textarea><p class="cms-help">بعد از انتشار، FAQ به‌صورت HTML و داده ساختاریافته تولید می‌شود.</p></div>
                 {#if form.id}<div class="cms-panel"><div class="cms-panel-head"><h3>تاریخچه نسخه‌ها</h3><button class="cms-outline" onclick={listRevisions}><RefreshCw size={16}/> نمایش نسخه‌ها</button></div>
@@ -526,12 +606,20 @@
                 <div class="cms-panel"><h3>انتشار و نشانی</h3><label class="cms-field">اسلاگ انگلیسی مقاله<input dir="ltr" bind:value={form.slug} maxlength="160" placeholder="elderly-home-care" /></label><p class="cms-help">نشانی عمومی: /stories/{form.slug || 'article-slug'}/</p>{#if form.status === 'published'}<button class="cms-outline full" onclick={newTab}><ExternalLink size={16}/> مشاهده مقاله منتشرشده</button>{/if}</div>
                 <div class="cms-panel"><h3>دسته‌بندی</h3><label class="cms-field">انتخاب دسته<select bind:value={form.category_slug}>{#each Object.entries(categories) as [slug,label]}<option value={slug}>{label}</option>{/each}</select></label><label class="cms-checkbox"><input type="checkbox" bind:checked={form.featured}/> انتخاب سردبیر (Featured)</label></div>
                 <div class="cms-panel"><h3>تصویر شاخص</h3>{#if form.cover_url}<img class="cms-cover-preview" src={publicImageUrl(form.cover_url)} alt={form.cover_alt} />{/if}<label class="cms-field">آدرس تصویر<input dir="ltr" bind:value={form.cover_url} placeholder="/media/uploads/…" /></label><label class="cms-field">متن جایگزین (ALT)<input bind:value={form.cover_alt} maxlength="255" placeholder="توصیف دقیق تصویر" /></label><button class="cms-outline full" onclick={() => uploadInput?.click()}><Upload size={17}/> بارگذاری تصویر</button></div>
+                <div class="cms-panel"><h3>مطالب مرتبط در ستون و انتهای مقاله</h3>
+                  <p class="cms-help">تا شش مقاله منتشرشده انتخاب کنید. بدون انتخاب، مقالات هم‌دسته به‌صورت خودکار پیشنهاد می‌شوند.</p>
+                  <div class="cms-related-pick">
+                    {#each articles.filter((a) => a.status === 'published' && Number(a.id) !== Number(form.id)) as item}
+                      <label><input type="checkbox" checked={(form.related_article_ids || []).map(Number).includes(Number(item.id))} onchange={(e) => toggleRelated(item.id, e.currentTarget.checked)} />{item.title}</label>
+                    {/each}
+                  </div>
+                </div>
                 <div class="cms-panel cms-publish-info"><ShieldCheck size={22} color="#00a4d4"/><h3>انتشار استاندارد سئو</h3><p>صفحه عمومی بعد از انتشار از MySQL به HTML سمت سرور تبدیل می‌شود و در سایت‌مپ پویا ثبت خواهد شد.</p></div>
               </aside>
             </div>
           {:else if view === 'media'}
-            <div class="cms-page-heading"><div><h2>کتابخانه رسانه مایکا</h2><p>فایل‌های واقعی روی هاست ایران؛ نه لینک‌های موقت CDN</p></div><button class="cms-primary" onclick={() => uploadInput?.click()}><Upload size={17}/> آپلود تصویر</button></div>
-            <div class="cms-panel"><label class="cms-field" style="max-width:450px">متن جایگزین تصویر هنگام آپلود<input bind:value={selectedImageAlt} placeholder="مثلاً مراقب در کنار سالمند در منزل" /></label><div class="cms-media-grid">{#each media as item}<div class="cms-media-card"><img src={publicImageUrl(item.path)} alt={item.alt}/><div><strong>{item.alt || 'تصویر بدون ALT'}</strong><small>{Math.round(item.bytes / 1024)} KB</small><button class="cms-link" onclick={() => { navigator.clipboard?.writeText(location.origin + item.path); notice = 'لینک تصویر کپی شد.'; }}>کپی آدرس</button></div></div>{:else}<div class="cms-empty">هنوز رسانه‌ای در پایگاه داده ثبت نشده است.</div>{/each}</div></div>
+            <div class="cms-page-heading"><div><h2>کتابخانه رسانه مایکا</h2><p>تصاویر و ویدئوهای واقعی روی هاست</p></div><div><button class="cms-outline" onclick={() => videoUploadInput?.click()}><Upload size={17}/> آپلود ویدئو</button><button class="cms-primary" onclick={() => uploadInput?.click()}><Upload size={17}/> آپلود تصویر</button></div></div>
+            <div class="cms-panel"><label class="cms-field" style="max-width:450px">متن جایگزین تصویر هنگام آپلود<input bind:value={selectedImageAlt} placeholder="مثلاً مراقب در کنار سالمند در منزل" /></label><div class="cms-media-grid">{#each media as item}<div class="cms-media-card">{#if item.mime?.startsWith('video/')}<video src={item.path} controls preload="metadata"></video>{:else}<img src={publicImageUrl(item.path)} alt={item.alt}/>{/if}<div><strong>{item.alt || 'تصویر بدون ALT'}</strong><small>{Math.round(item.bytes / 1024)} KB</small><button class="cms-link" onclick={() => { navigator.clipboard?.writeText(location.origin + item.path); notice = 'لینک رسانه کپی شد.'; }}>کپی آدرس</button></div></div>{:else}<div class="cms-empty">هنوز رسانه‌ای در پایگاه داده ثبت نشده است.</div>{/each}</div></div>
           {:else if view === 'users' && user.role === 'admin'}
             <div class="cms-page-heading"><div><h2>مدیریت کاربران تحریریه</h2><p>نویسنده، سردبیر و مدیر کل با کنترل دسترسی واقعی روی سرور</p></div><button class="cms-outline" onclick={loadUsers}><RefreshCw size={17}/> به‌روزرسانی</button></div>
             <div class="cms-panel"><h3>ایجاد حساب کاربری</h3>
@@ -596,5 +684,5 @@
       </div>
     </div>
   {/if}
-  <input class="cms-file-input" type="file" accept="image/jpeg,image/png,image/webp" bind:this={uploadInput} onchange={uploadFile}/>
+  <input class="cms-file-input" type="file" accept="image/jpeg,image/png,image/webp" bind:this={uploadInput} onchange={uploadFile}/><input class="cms-file-input" type="file" accept="video/mp4,video/webm" bind:this={videoUploadInput} onchange={uploadFile}/>
 </div>
