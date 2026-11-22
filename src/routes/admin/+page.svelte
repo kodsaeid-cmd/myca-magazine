@@ -14,7 +14,7 @@
     id: 0, title: '', slug: '', excerpt: '', body_html: '<p></p>',
     category_slug: 'elder-care', status: 'draft', cover_url: '', cover_alt: '',
     meta_title: '', meta_description: '', canonical_url: '', robots: 'index,follow',
-    focus_keyword: '', faq_json: [], featured: false
+    focus_keyword: '', faq_json: [], sources_json: [], related_article_ids: [], expert_name: '', expert_title: '', expert_quote: '', featured: false
   });
   const statusNames = { draft: 'پیش‌نویس', review: 'در انتظار بازبینی', published: 'منتشرشده', archived: 'بایگانی' };
   let initialized = false, loading = true, user = null, csrf = '', serviceError = '';
@@ -27,7 +27,8 @@
   let editUserPassword = '', editUserCurrentPassword = '', showEditUserPassword = false, showEditCurrentPassword = false;
   let imageAudit = null, imageAuditLoading = false;
   let search = '', statusFilter = '', form = empty(), faqText = '';
-  let editorHost, uploadInput, editor, editorLoading = false;
+  let editorHost, uploadInput, videoUploadInput, editor, editorLoading = false;
+  let sourcesText = '', internalLinkId = '', lastEditorActivity = Date.now();
   let selectedImageAlt = '';
   $: canPublish = user && (user.role === 'admin' || user.role === 'editor');
   $: visibleArticles = articles.filter((a) =>
@@ -278,7 +279,8 @@
     if (next === 'dashboard') await loadDashboard();
   }
   async function openNew() {
-    clearMessages(); teardownEditor(); form = empty(); faqText = ''; revisions = [];
+    clearMessages(); teardownEditor(); form = empty(); faqText = ''; sourcesText = ''; revisions = [];
+    await loadArticles();
     view = 'editor'; navOpen = false;
     await tick(); await startEditor();
   }
@@ -289,6 +291,9 @@
       teardownEditor();
       form = { ...empty(), ...article, featured: Number(article.featured || 0) === 1 };
       faqText = (article.faq_json || []).map((f) => f.question + ' | ' + f.answer).join('\n');
+      sourcesText = (article.sources_json || []).map((f) => f.title + ' | ' + (f.url || '')).join('\n');
+      form.related_article_ids = (article.related_article_ids || []).map(Number);
+      await loadArticles();
       revisions = [];
       view = 'editor'; navOpen = false;
       await tick(); await startEditor();
@@ -300,7 +305,7 @@
     editorLoading = true;
     try {
       const [
-        { Editor }, { default: StarterKit }, { default: Underline },
+        { Editor, Node }, { default: StarterKit }, { default: Underline },
         { default: Link }, { default: Image }, { default: Table },
         { default: TableRow }, { default: TableHeader }, { default: TableCell },
         { default: TextAlign }
@@ -311,10 +316,18 @@
         import('@tiptap/extension-table-row'), import('@tiptap/extension-table-header'),
         import('@tiptap/extension-table-cell'), import('@tiptap/extension-text-align')
       ]);
+      const Video = Node.create({
+        name: 'mycaVideo', group: 'block', atom: true, selectable: true,
+        addAttributes() { return { src: { default: null } }; },
+        parseHTML() { return [{ tag: 'video[src]' }]; },
+        renderHTML({ HTMLAttributes }) {
+          return ['video', { src: HTMLAttributes.src, controls: 'controls', preload: 'metadata', playsinline: 'playsinline' }];
+        }
+      });
       editor = new Editor({
         element: editorHost,
         extensions: [
-          StarterKit, Underline,
+          StarterKit, Underline, Video,
           Link.configure({ openOnClick: false, HTMLAttributes: { rel: 'noopener noreferrer' } }),
           Image.configure({ allowBase64: false }),
           Table.configure({ resizable: false }), TableRow, TableHeader, TableCell,
@@ -322,7 +335,7 @@
         ],
         editorProps: { attributes: { class: 'cms-prosemirror', dir: 'rtl', spellcheck: 'true' } },
         content: editorImageUrls(form.body_html || '<p></p>'),
-        onUpdate: ({ editor: instance }) => { form.body_html = originalImageUrls(instance.getHTML()); }
+        onUpdate: ({ editor: instance }) => { form.body_html = originalImageUrls(instance.getHTML()); lastEditorActivity = Date.now(); }
       });
     } catch (e) { error = 'ویرایشگر بارگذاری نشد: ' + e.message; }
     finally { editorLoading = false; }
@@ -350,6 +363,32 @@
       else error = 'فقط لینک https یا مسیر داخلی مجاز است.';
     }
   }
+  function parseSources() {
+    return sourcesText.split('\n').map((line) => {
+      const p = line.indexOf('|');
+      const title = (p < 0 ? line : line.slice(0, p)).trim();
+      const url = (p < 0 ? '' : line.slice(p + 1)).trim();
+      if(!title) return null;
+      if(url && !/^https:\/\/\S+$/i.test(url)) throw new Error('آدرس منبع باید با https:// آغاز شود.');
+      return { title, url };
+    }).filter(Boolean).slice(0, 20);
+  }
+  function insertInternalLink() {
+    const a = articles.find((x) => Number(x.id) === Number(internalLinkId) && x.status === 'published');
+    if(!a || !editor) return;
+    const url = '/stories/' + a.slug + '/';
+    if(editor.state.selection.empty) {
+      const title = a.title.replace(/&/g,'&amp;').replace(/</g,'&lt;');
+      editor.chain().focus().insertContent('<a href="' + url + '">' + title + '</a>').run();
+    } else editor.chain().focus().setLink({ href: url }).run();
+    notice = 'لینک داخلی مقاله درج شد.';
+  }
+  function toggleRelated(id, checked) {
+    const number = Number(id);
+    const current = (form.related_article_ids || []).map(Number).filter((x) => x !== number);
+    if(checked && current.length >= 6) { error = 'حداکثر ۶ مقاله مرتبط مجاز است.'; return; }
+    form.related_article_ids = checked ? [...current, number] : current;
+  }
   function parseFaq() {
     return faqText.split('\n').map((line) => {
       const pos = line.indexOf('|');
@@ -362,7 +401,7 @@
   async function saveArticle(status) {
     clearMessages(); busy = true;
     try {
-      const payload = { ...form, status, body_html: originalImageUrls(editor?.getHTML() || form.body_html), faq_json: parseFaq() };
+      const payload = { ...form, status, body_html: originalImageUrls(editor?.getHTML() || form.body_html), faq_json: parseFaq(), sources_json: parseSources() };
       const result = await request('save', {
         method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload)
       });
